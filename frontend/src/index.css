@@ -1,0 +1,180 @@
+@import "tailwindcss";
+
+/* ============================================================
+   Design system — Rumah Jamur Dashboard
+   Dark theme with emerald/teal accents and glassmorphism
+   ============================================================ */
+
+@layer base {
+  :root {
+    --bg-base:        #070d1a;
+    --bg-surface:     #0d1628;
+    --bg-card:        rgba(15, 25, 50, 0.7);
+    --bg-card-hover:  rgba(20, 35, 65, 0.85);
+
+    --accent-primary:    #10d9a0;  /* emerald-teal */
+    --accent-secondary:  #3b82f6;  /* blue */
+    --accent-warning:    #f59e0b;  /* amber */
+    --accent-danger:     #ef4444;  /* red */
+    --accent-purple:     #a855f7;
+
+    --text-primary:    #e2e8f0;
+    --text-secondary:  #94a3b8;
+    --text-muted:      #475569;
+
+    --border-subtle:  rgba(148, 163, 184, 0.08);
+    --border-glow:    rgba(16, 217, 160, 0.25);
+
+    --glow-primary:   0 0 40px rgba(16, 217, 160, 0.15);
+    --glow-blue:      0 0 40px rgba(59, 130, 246, 0.15);
+    --glow-danger:    0 0 40px rgba(239, 68, 68, 0.15);
+  }
+
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  html {
+    font-size: 16px;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  body {
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    background-color: var(--bg-base);
+    color: var(--text-primary);
+    min-height: 100vh;
+    line-height: 1.6;
+  }
+
+  #root {
+    min-height: 100vh;
+  }
+}
+
+@layer components {
+
+  /* ---- Glass card ---- */
+  .glass-card {
+    background: var(--bg-card);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid var(--border-subtle);
+    border-radius: 1rem;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .glass-card:hover {
+    border-color: rgba(148, 163, 184, 0.15);
+  }
+
+  /* ---- Status badge ---- */
+  .status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+    flex-shrink: 0;
+  }
+
+  .status-dot.online {
+    background: var(--accent-primary);
+    box-shadow: 0 0 8px var(--accent-primary);
+    animation: pulse-dot 2s ease-in-out infinite;
+  }
+
+  .status-dot.offline {
+    background: var(--accent-danger);
+  }
+
+  .status-dot.stale {
+    background: var(--accent-warning);
+  }
+
+  .status-dot.connecting {
+    background: var(--accent-warning);
+    animation: pulse-dot 1s ease-in-out infinite;
+  }
+
+  /* ---- Animations ---- */
+  @keyframes pulse-dot {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  @keyframes slide-up {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes fade-in {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
+
+  @keyframes spin-slow {
+    to { transform: rotate(360deg); }
+  }
+
+  .animate-slide-up {
+    animation: slide-up 0.4s ease forwards;
+  }
+
+  .animate-fade-in {
+    animation: fade-in 0.3s ease forwards;
+  }
+
+  /* ---- Gradient text ---- */
+  .text-gradient-primary {
+    background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* ---- Metric value ---- */
+  .metric-value {
+    font-size: clamp(2.5rem, 5vw, 4rem);
+    font-weight: 800;
+    line-height: 1;
+    letter-spacing: -0.02em;
+  }
+
+  /* ---- Pump state ---- */
+  .pump-on {
+    background: linear-gradient(135deg, rgba(16, 217, 160, 0.15), rgba(59, 130, 246, 0.1));
+    border-color: rgba(16, 217, 160, 0.4) !important;
+    box-shadow: var(--glow-primary);
+  }
+
+  .pump-off {
+    background: var(--bg-card);
+  }
+
+  /* ---- No data banner ---- */
+  .no-data-banner {
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.1), rgba(239, 68, 68, 0.05));
+    border: 1px solid rgba(245, 158, 11, 0.3);
+    border-radius: 0.75rem;
+    padding: 0.75rem 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+    color: var(--accent-warning);
+  }
+
+  /* ---- Scrollbar ---- */
+  ::-webkit-scrollbar {
+    width: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: rgba(148, 163, 184, 0.15);
+    border-radius: 3px;
+  }
+}
