@@ -14,13 +14,19 @@ import logging
 from typing import Optional
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query
-from fastapi.responses import JSONResponse
+from pydantic import BaseModel
 
 from app.services.state import app_state, STALE_THRESHOLD_S
 from app.database.db import fetch_history, RETENTION_HOURS
+from app.mqtt.client import publish_control_command
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
+
+
+class ControlRequest(BaseModel):
+    mode: Optional[str] = None
+    pump: Optional[bool] = None
 
 
 # -----------------------------------------------------------------------
@@ -106,6 +112,7 @@ async def get_config():
         "mqtt_topics": {
             "telemetry": "rumahjamur/rumah-jamur-01/telemetry",
             "status":    "rumahjamur/rumah-jamur-01/status",
+            "control":   "rumahjamur/rumah-jamur-01/control",
         },
         "pump_reason_values": [
             "NONE",
@@ -115,8 +122,42 @@ async def get_config():
             "TEMP_HIGH_THRESHOLD",
             "NO_THRESHOLD_MET",
             "COOLDOWN",
+            "MANUAL_ON",
+            "MANUAL_OFF",
         ],
         "system_state_values": ["NORMAL", "DEGRADED", "ERROR"],
+        "control_modes": ["AUTO", "MANUAL"],
+    }
+
+
+@router.post("/api/control")
+async def send_control(req: ControlRequest):
+    """Publish a control command to ESP32 via MQTT and update local state."""
+    command = {}
+    if req.mode is not None:
+        mode_val = req.mode.upper()
+        if mode_val in ("AUTO", "MANUAL"):
+            command["mode"] = mode_val
+            app_state.mode = mode_val
+            if app_state.current_telemetry:
+                app_state.current_telemetry["mode"] = mode_val
+
+    if req.pump is not None:
+        command["pump"] = bool(req.pump)
+        if app_state.current_telemetry:
+            app_state.current_telemetry["pump"] = bool(req.pump)
+            app_state.current_telemetry["pump_reason"] = "MANUAL_ON" if req.pump else "MANUAL_OFF"
+
+    device_id = "rumah-jamur-01"
+    ok = await publish_control_command(device_id, command)
+
+    # Broadcast updated state immediately to all WS clients
+    await ws_manager.broadcast(app_state.to_dict())
+
+    return {
+        "status": "ok" if ok else "mqtt_publish_failed",
+        "command": command,
+        "mode": app_state.mode,
     }
 
 
