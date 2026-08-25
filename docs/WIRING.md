@@ -31,8 +31,7 @@ Ukur LM2596 dan pastikan `5.0V` sebelum menyambungkannya ke ESP32.
 | DHT_Z1 | GPIO23 | 3V3_SENSOR_BUS | GND_BUS |
 | DHT_Z2 | GPIO19 | 3V3_SENSOR_BUS | GND_BUS |
 | DHT_Z3 | GPIO18 | 3V3_SENSOR_BUS | GND_BUS |
-| DHT_Z4 | GPIO16 | 3V3_SENSOR_BUS | GND_BUS |
-| DHT_Z5 | GPIO17 | 3V3_SENSOR_BUS | GND_BUS |
+| DHT_Z4 | GPIO17 | 3V3_SENSOR_BUS | GND_BUS |
 
 Jika DHT22 bare sensor, tambahkan pull-up 4.7k–10k dari DATA ke 3V3_SENSOR_BUS.
 
@@ -44,7 +43,6 @@ Jika DHT22 bare sensor, tambahkan pull-up 4.7k–10k dari DATA ke 3V3_SENSOR_BUS
 |---|---|---|---|
 | SOIL_Z1 | GPIO36 / VP | 3V3_SENSOR_BUS | GND_BUS |
 | SOIL_Z2 | GPIO35 | 3V3_SENSOR_BUS | GND_BUS |
-| SOIL_Z3 | GPIO34 | 3V3_SENSOR_BUS | GND_BUS |
 
 Gunakan SIGNAL/AO. Jangan gunakan DO untuk pembacaan persentase.
 

@@ -70,11 +70,9 @@ DHT1_PIN
 DHT2_PIN
 DHT3_PIN
 DHT4_PIN
-DHT5_PIN
 
 SOIL1_PIN
 SOIL2_PIN
-SOIL3_PIN
 
 RELAY_PIN
 ```
@@ -85,6 +83,6 @@ Pin I2C dan MUX tidak dipakai lagi.
 
 Status yang dilaporkan firmware:
 
-- `NORMAL` = 5/5 DHT valid
-- `DEGRADED` = 1-4/5 DHT valid
-- `ERROR` = 0/5 DHT valid
+- `NORMAL` = 4/4 DHT valid
+- `DEGRADED` = 1-3/4 DHT valid
+- `ERROR` = 0/4 DHT valid

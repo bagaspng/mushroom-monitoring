@@ -1,16 +1,13 @@
+import { useState, useEffect } from 'react';
+import { api } from '../services/api';
+
 /**
- * PumpStatus.jsx — Pump state and reason display
+ * PumpStatus.jsx — Pump state, reason display, and manual control toggles
  *
- * ⚠ pump_reason is taken verbatim from ESP32 payload.
- * Frontend NEVER calculates or infers the reason.
- *
- * Reason values (from Types.h source of truth):
- *   NONE, NO_VALID_DHT, RH_MAX_THRESHOLD,
- *   HUMIDITY_DEMAND, TEMP_HIGH_THRESHOLD,
- *   NO_THRESHOLD_MET, COOLDOWN
+ * ⚠ In AUTO mode, pump_reason is taken verbatim from ESP32 payload.
+ * In MANUAL mode, the user can toggle the pump ON / OFF manually.
  */
 
-// Human-readable labels for each pump reason enum
 const REASON_LABELS = {
   HUMIDITY_DEMAND:     { text: 'Kelembapan rendah', icon: '💧', color: '59, 130, 246' },
   TEMP_HIGH_THRESHOLD: { text: 'Suhu tinggi',        icon: '🌡️', color: '239, 68, 68'  },
@@ -18,12 +15,14 @@ const REASON_LABELS = {
   NO_THRESHOLD_MET:    { text: 'Kondisi normal',      icon: '✅', color: '16, 217, 160' },
   NO_VALID_DHT:        { text: 'Sensor DHT error',   icon: '⚠️', color: '239, 68, 68'  },
   COOLDOWN:            { text: 'Cooldown aktif',      icon: '⏱️', color: '168, 85, 247' },
+  MANUAL_ON:           { text: 'Manual Aktif (ON)',   icon: '🖐️', color: '16, 217, 160' },
+  MANUAL_OFF:          { text: 'Manual Nonaktif',    icon: '🖐️', color: '148, 163, 184' },
   NONE:                { text: 'Belum dievaluasi',   icon: '—',  color: '148, 163, 184' },
 };
 
 function PumpIndicator({ isOn }) {
   return (
-    <div className="relative flex items-center justify-center" style={{ width: 80, height: 80 }}>
+    <div className="relative flex items-center justify-center" style={{ width: 76, height: 76 }}>
       {/* Outer ring */}
       <div
         className="absolute inset-0 rounded-full"
@@ -36,15 +35,15 @@ function PumpIndicator({ isOn }) {
       <div
         className="flex items-center justify-center rounded-full"
         style={{
-          width: 56,
-          height: 56,
+          width: 52,
+          height: 52,
           background: isOn
             ? 'linear-gradient(135deg, rgba(16,217,160,0.3), rgba(59,130,246,0.2))'
             : 'rgba(148,163,184,0.05)',
           border: `2px solid ${isOn ? 'rgba(16,217,160,0.6)' : 'rgba(148,163,184,0.2)'}`,
         }}
       >
-        <span style={{ fontSize: '1.5rem' }}>💦</span>
+        <span style={{ fontSize: '1.4rem' }}>💦</span>
       </div>
 
       <style>{`
@@ -59,10 +58,28 @@ function PumpIndicator({ isOn }) {
 
 export function PumpStatus({ telemetry, stale }) {
   const t = telemetry?.current_telemetry;
-  const isOn = !stale && t?.pump === true;
-  const reasonKey = t?.pump_reason ?? 'NONE';
+  const serverIsOn = !stale && t?.pump === true;
+  const serverMode = telemetry?.mode ?? t?.mode ?? 'AUTO';
+
+  const [optimisticPump, setOptimisticPump] = useState(null);
+  const [optimisticMode, setOptimisticMode] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  const currentMode = optimisticMode ?? serverMode;
+  const isManual = currentMode === 'MANUAL';
+  const isOn = optimisticPump !== null ? optimisticPump : serverIsOn;
+
+  useEffect(() => {
+    setOptimisticPump(null);
+  }, [serverIsOn]);
+
+  useEffect(() => {
+    setOptimisticMode(null);
+  }, [serverMode]);
+
+  const reasonKey = t?.pump_reason ?? (isOn ? 'MANUAL_ON' : 'NONE');
   const pumpState = t ? (
-    t.pump
+    isOn
       ? 'RUNNING'
       : t.cooldown_remaining_s > 0
       ? 'COOLDOWN'
@@ -77,15 +94,59 @@ export function PumpStatus({ telemetry, stale }) {
 
   const cooldownSec = t?.cooldown_remaining_s ?? 0;
 
+  const handleModeToggle = async () => {
+    if (loading) return;
+    const newMode = isManual ? 'AUTO' : 'MANUAL';
+    setOptimisticMode(newMode);
+    try {
+      setLoading(true);
+      await api.sendControl({ mode: newMode });
+    } catch (err) {
+      console.error('Failed to change mode:', err);
+      setOptimisticMode(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handlePumpToggle = async () => {
+    if (loading || !isManual) return;
+    const targetPump = !isOn;
+    setOptimisticPump(targetPump);
+    try {
+      setLoading(true);
+      await api.sendControl({ mode: 'MANUAL', pump: targetPump });
+    } catch (err) {
+      console.error('Failed to toggle pump:', err);
+      setOptimisticPump(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div
       className={`glass-card p-5 animate-slide-up ${isOn ? 'pump-on' : 'pump-off'}`}
       style={{ animationDelay: '0.15s' }}
     >
+      {/* Header */}
       <div className="flex items-center justify-between mb-4">
-        <h3 className="font-semibold text-sm" style={{ color: 'var(--text-secondary)' }}>
-          Status Pompa
-        </h3>
+        <div className="flex items-center gap-2">
+          <h3 className="font-semibold text-sm" style={{ color: 'var(--text-secondary)' }}>
+            Status & Kontrol Pompa
+          </h3>
+          <span
+            className="text-xs font-bold px-2 py-0.5 rounded-full"
+            style={{
+              background: isManual ? 'rgba(168,85,247,0.15)' : 'rgba(59,130,246,0.15)',
+              color: isManual ? 'var(--accent-purple)' : 'var(--accent-secondary)',
+              border: `1px solid ${isManual ? 'rgba(168,85,247,0.3)' : 'rgba(59,130,246,0.3)'}`,
+            }}
+          >
+            {isManual ? 'MANUAL' : 'AUTO (DHT)'}
+          </span>
+        </div>
+
         <span
           className="text-xs font-bold px-2 py-0.5 rounded-full"
           style={{
@@ -94,11 +155,12 @@ export function PumpStatus({ telemetry, stale }) {
             border: `1px solid ${isOn ? 'rgba(16,217,160,0.4)' : 'rgba(148,163,184,0.15)'}`,
           }}
         >
-          {stale ? 'NO DATA' : isOn ? 'ON' : pumpState ?? 'IDLE'}
+          {stale ? 'NO DATA' : isOn ? 'RUNNING' : pumpState ?? 'IDLE'}
         </span>
       </div>
 
-      <div className="flex items-center gap-5">
+      {/* Main indicator and info */}
+      <div className="flex items-center gap-4 mb-4">
         <PumpIndicator isOn={isOn} />
 
         <div className="flex-1 min-w-0">
@@ -128,7 +190,7 @@ export function PumpStatus({ telemetry, stale }) {
 
               {/* Cooldown countdown */}
               {cooldownSec > 0 && (
-                <div className="mt-2 text-xs" style={{ color: 'var(--accent-purple)' }}>
+                <div className="mt-1.5 text-xs font-medium" style={{ color: 'var(--accent-purple)' }}>
                   ⏱ Cooldown: {Math.floor(cooldownSec / 60)}m {cooldownSec % 60}s tersisa
                 </div>
               )}
@@ -137,9 +199,90 @@ export function PumpStatus({ telemetry, stale }) {
         </div>
       </div>
 
-      {/* Disclaimer */}
-      <p className="mt-4 text-xs" style={{ color: 'var(--text-muted)' }}>
-        Alasan dari ESP32 · Frontend tidak menghitung reason
+      {/* Interactive Controls Panel */}
+      <div
+        className="p-3 rounded-xl flex flex-col gap-3"
+        style={{
+          background: 'rgba(7, 13, 26, 0.6)',
+          border: '1px solid var(--border-subtle)',
+        }}
+      >
+        {/* Toggle Mode: Auto vs Manual */}
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="text-xs font-semibold" style={{ color: 'var(--text-primary)' }}>
+              Mode Kontrol
+            </div>
+            <div className="text-xs" style={{ color: 'var(--text-muted)' }}>
+              {isManual ? 'Manual via Dashboard' : 'Otomatis via Sensor DHT22'}
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={handleModeToggle}
+            disabled={loading}
+            className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer"
+            style={{
+              background: isManual
+                ? 'linear-gradient(135deg, rgba(168,85,247,0.3), rgba(168,85,247,0.15))'
+                : 'linear-gradient(135deg, rgba(59,130,246,0.3), rgba(59,130,246,0.15))',
+              border: `1px solid ${isManual ? 'rgba(168,85,247,0.5)' : 'rgba(59,130,246,0.5)'}`,
+              color: isManual ? 'var(--accent-purple)' : 'var(--accent-secondary)',
+              opacity: loading ? 0.6 : 1,
+            }}
+          >
+            <span>{isManual ? '⚙️ Ubah ke Auto' : '🖐️ Ubah ke Manual'}</span>
+          </button>
+        </div>
+
+        {/* Toggle Pump: ON / OFF (Manual Mode Only) */}
+        <div
+          className="flex items-center justify-between pt-2"
+          style={{
+            borderTop: '1px solid rgba(148, 163, 184, 0.08)',
+            opacity: isManual ? 1 : 0.45,
+          }}
+        >
+          <div>
+            <div className="text-xs font-semibold" style={{ color: 'var(--text-primary)' }}>
+              Saklar Pompa Manual
+            </div>
+            <div className="text-xs" style={{ color: 'var(--text-muted)' }}>
+              {isManual
+                ? isOn
+                  ? 'Pompa sedang MENYALA (Klik untuk mematikan)'
+                  : 'Pompa sedang MATI (Klik untuk menyalakan)'
+                : 'Hanya aktif pada Mode Manual'}
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={handlePumpToggle}
+            disabled={!isManual || loading}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all"
+            style={{
+              cursor: isManual ? 'pointer' : 'not-allowed',
+              background: isOn
+                ? 'linear-gradient(135deg, rgba(239,68,68,0.3), rgba(239,68,68,0.15))'
+                : 'linear-gradient(135deg, rgba(16,217,160,0.3), rgba(16,217,160,0.15))',
+              border: `1px solid ${isOn ? 'rgba(239,68,68,0.5)' : 'rgba(16,217,160,0.5)'}`,
+              color: isOn ? 'var(--accent-danger)' : 'var(--accent-primary)',
+              opacity: loading ? 0.6 : 1,
+              boxShadow: isOn ? '0 0 12px rgba(239,68,68,0.2)' : '0 0 12px rgba(16,217,160,0.2)',
+            }}
+          >
+            <span>{isOn ? '🛑 MATIKAN' : '⚡ NYALAKAN'}</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Footer Info */}
+      <p className="mt-3 text-xs" style={{ color: 'var(--text-muted)' }}>
+        {isManual
+          ? 'Mode Manual aktif · Dilengkapi proteksi batas waktu semprot pengaman'
+          : 'Mode Otomatis aktif · Pompa dievaluasi otomatis oleh ESP32'}
       </p>
     </div>
   );
