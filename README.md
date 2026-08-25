@@ -3,8 +3,8 @@
 Firmware modular untuk:
 
 - ESP32 DevKit 38-pin/CP2102
-- DHT22 sebanyak 5 sensor
-- soil/media moisture sensor sebanyak 3 sensor langsung ke ADC ESP32 untuk monitoring
+- DHT22 sebanyak 4 sensor
+- soil/media moisture sensor sebanyak 2 sensor langsung ke ADC ESP32 untuk monitoring
 - relay pompa pada GPIO32
 - pompa DC 12V
 - PSU 12V dan LM2596 5V
@@ -18,7 +18,7 @@ Proyek ini ditata sebagai firmware **PlatformIO** untuk ESP32 DevKit 38-pin/CP21
 ### Control Path (selalu aktif, tidak bergantung monitoring)
 
 ```
-DHT22 x5 + Soil x3
+DHT22 x4 + Soil x2
       │
       ▼
 SensorManager → DecisionEngine → PumpController → Relay → Pompa DC 12V
@@ -43,7 +43,7 @@ jamur-dashboard/
 ├── README.md
 ├── AGENTS.md
 ├── LICENSE
-├── src/                        ← Firmware ESP32 (existing)
+├── src/                        ← Firmware ESP32
 │   ├── AppConfig.h             ← Konfigurasi user (pin, threshold, WiFi/MQTT)
 │   ├── Types.h                 ← Enum dan struct
 │   ├── DecisionEngine.h/.cpp   ← Logika kontrol pompa (jangan diubah)
@@ -73,7 +73,7 @@ jamur-dashboard/
 │   │   └── App.jsx
 │   └── .env.example
 └── docs/
-    ├── DASHBOARD.md            ← Dokumentasi dashboard (baru)
+    ├── DASHBOARD.md            ← Dokumentasi dashboard
     ├── WIRING.md
     ├── CONFIGURATION.md
     ├── CALIBRATION.md
@@ -90,11 +90,9 @@ jamur-dashboard/
 | DHT_Z1 DATA | GPIO23 |
 | DHT_Z2 DATA | GPIO19 |
 | DHT_Z3 DATA | GPIO18 |
-| DHT_Z4 DATA | GPIO16 |
-| DHT_Z5 DATA | GPIO17 |
+| DHT_Z4 DATA | GPIO17 |
 | SOIL_Z1 AO | GPIO36 / VP |
 | SOIL_Z2 AO | GPIO35 |
-| SOIL_Z3 AO | GPIO34 |
 | Relay IN | GPIO32 |
 
 LCD I2C dan CD74HC4067 tidak digunakan pada wiring final.  
@@ -120,10 +118,10 @@ Soil sensor tidak mempengaruhi keputusan pompa, hanya data monitoring.
   "temperature":         28.4,
   "humidity":            87.2,
   "soil_average":        61.7,
-  "dht_valid":           5,
-  "dht_total":           5,
-  "soil_valid":          3,
-  "soil_total":          3,
+  "dht_valid":           4,
+  "dht_total":           4,
+  "soil_valid":          2,
+  "soil_total":          2,
   "pump":                false,
   "pump_reason":         "NO_THRESHOLD_MET",
   "system_state":        "NORMAL",
@@ -182,7 +180,7 @@ cd backend
 copy .env.example .env      # Windows
 # cp .env.example .env      # Linux/macOS
 pip install -r requirements.txt
-uvicorn app.main:app --reload --port 8000
+python -m uvicorn app.main:app --reload --port 8000
 ```
 
 Endpoint tersedia di `http://localhost:8000/docs`
@@ -345,8 +343,8 @@ PSU 12V
 └── LM2596 5V → 5V_BUS → ESP32 pin 5V
 
 3V3_SENSOR_BUS
-├── DHT22 x5
-└── soil sensor x3 (langsung ke ADC ESP32)
+├── DHT22 x4
+└── soil sensor x2 (langsung ke ADC ESP32)
 ```
 
 ---
@@ -354,8 +352,8 @@ PSU 12V
 ## 13. Kalibrasi Soil
 
 ```cpp
-constexpr int SOIL_RAW_DRY[] = {3200, 3200, 3200};
-constexpr int SOIL_RAW_WET[] = {1300, 1300, 1300};
+constexpr int SOIL_RAW_DRY[] = {3200, 3200};
+constexpr int SOIL_RAW_WET[] = {1300, 1300};
 ```
 
 Lihat [docs/CALIBRATION.md](docs/CALIBRATION.md) untuk prosedur kalibrasi.
@@ -382,9 +380,9 @@ Lihat [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) untuk troubleshooting h
 
 | Status | Kondisi |
 |---|---|
-| `NORMAL` | 5/5 DHT valid |
-| `DEGRADED` | 1-4/5 DHT valid |
-| `ERROR` | 0/5 DHT valid |
+| `NORMAL` | 4/4 DHT valid |
+| `DEGRADED` | 1-3/4 DHT valid |
+| `ERROR` | 0/4 DHT valid |
 
 ---
 
