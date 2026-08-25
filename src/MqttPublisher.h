@@ -37,8 +37,12 @@ public:
         const PumpController& pump
     );
 
+    using ControlCallback = void (*)(ControlMode mode, bool pump);
+    void setControlCallback(ControlCallback cb);
+    void triggerImmediatePublish();
+
     bool isWifiConnected() const;
-    bool isMqttConnected() const;
+    bool isMqttConnected();
 
 private:
     void connectWifi();
@@ -50,6 +54,9 @@ private:
         uint32_t nowMs
     );
     void publishOnlineStatus(bool online);
+
+    static void onMqttMessage(char* topic, byte* payload, unsigned int length);
+    static ControlCallback controlCallback_;
 
     // --- Conversion helpers ---
     static const char* pumpReasonToStr(PumpDecisionReason reason, PumpState pumpState);

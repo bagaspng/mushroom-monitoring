@@ -3,6 +3,11 @@
 #include <Arduino.h>
 #include "AppConfig.h"
 
+enum class ControlMode : uint8_t {
+    AUTO,
+    MANUAL
+};
+
 enum class DhtHealthStatus : uint8_t {
     NORMAL,
     DEGRADED,
@@ -15,7 +20,9 @@ enum class PumpDecisionReason : uint8_t {
     RH_MAX_THRESHOLD,
     HUMIDITY_DEMAND,
     TEMP_HIGH_THRESHOLD,
-    NO_THRESHOLD_MET
+    NO_THRESHOLD_MET,
+    MANUAL_ON,
+    MANUAL_OFF
 };
 
 enum class PumpState : uint8_t {
@@ -54,4 +61,5 @@ struct SensorSnapshot {
 struct ControlDecision {
     bool requestPump = false;
     PumpDecisionReason reason = PumpDecisionReason::NONE;
+    ControlMode mode = ControlMode::AUTO;
 };

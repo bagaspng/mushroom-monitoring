@@ -21,16 +21,15 @@ int readAverageAnalog(uint8_t pin, uint8_t samples) {
 }  // namespace
 
 SensorManager::SensorManager()
-    : dht1_(Config::DHT_PINS[0], DHT22),
-      dht2_(Config::DHT_PINS[1], DHT22),
-      dht3_(Config::DHT_PINS[2], DHT22),
-      dht4_(Config::DHT_PINS[3], DHT22),
-      dht5_(Config::DHT_PINS[4], DHT22),
-      dhtSensors_{&dht1_, &dht2_, &dht3_, &dht4_, &dht5_} {}
+    : dht1_(Config::DHT_PINS[0], DHT22, 15),
+      dht2_(Config::DHT_PINS[1], DHT22, 15),
+      dht3_(Config::DHT_PINS[2], DHT22, 15),
+      dht4_(Config::DHT_PINS[3], DHT22, 15),
+      dhtSensors_{&dht1_, &dht2_, &dht3_, &dht4_} {}
 
 void SensorManager::begin() {
     for (uint8_t i = 0; i < Config::DHT_COUNT; ++i) {
-        dhtSensors_[i]->begin();
+        dhtSensors_[i]->begin(80);
     }
 
     analogReadResolution(12);
@@ -81,21 +80,30 @@ SensorSnapshot SensorManager::readAll(uint32_t nowMs) {
     float humiditySum = 0.0F;
 
     for (uint8_t i = 0; i < Config::DHT_COUNT; ++i) {
-        const float humidity = dhtSensors_[i]->readHumidity();
-        const float temperature = dhtSensors_[i]->readTemperature();
-        const bool valid = isDhtValueValid(temperature, humidity);
+        bool readOk = dhtSensors_[i]->read(true);
+        if (!readOk) {
+            delay(60);
+            readOk = dhtSensors_[i]->read(true);
+        }
+
+        const float humidity = dhtSensors_[i]->readHumidity(false);
+        const float temperature = dhtSensors_[i]->readTemperature(false, false);
+        const bool valid = readOk && isDhtValueValid(temperature, humidity);
 
         snapshot.dht[i].temperatureC = temperature;
         snapshot.dht[i].humidityRh = humidity;
         snapshot.dht[i].valid = valid;
 
         if (!valid) {
+            delay(20);
             continue;
         }
 
         ++snapshot.validDhtCount;
         temperatureSum += temperature;
         humiditySum += humidity;
+
+        delay(30);  // Jeda stabilisasi antar sensor
     }
 
     if (snapshot.validDhtCount > 0) {

@@ -20,7 +20,6 @@ private:
     DHT dht2_;
     DHT dht3_;
     DHT dht4_;
-    DHT dht5_;
 
     DHT* dhtSensors_[Config::DHT_COUNT];
 };
