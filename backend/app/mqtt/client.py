@@ -15,6 +15,7 @@ import asyncio
 import json
 import logging
 import os
+from typing import Optional
 
 import aiomqtt
 
@@ -26,7 +27,8 @@ logger = logging.getLogger(__name__)
 BROKER_HOST = os.getenv("MQTT_BROKER_HOST", "localhost")
 BROKER_PORT = int(os.getenv("MQTT_BROKER_PORT", "1883"))
 
-# WebSocket broadcast callback (injected by main.py at startup)
+# Active MQTT client reference for fast reuse
+_active_client: Optional[aiomqtt.Client] = None
 _broadcast_callback = None
 
 
@@ -41,12 +43,14 @@ async def mqtt_listener_task() -> None:
     Long-running async task that subscribes to MQTT topics.
     On disconnect, aiomqtt raises MqttError — we catch and reconnect.
     """
+    global _active_client
     reconnect_interval = 5  # seconds between reconnect attempts
 
     while True:
         try:
             logger.info("Connecting to MQTT broker %s:%d", BROKER_HOST, BROKER_PORT)
             async with aiomqtt.Client(BROKER_HOST, port=BROKER_PORT) as client:
+                _active_client = client
                 app_state.mqtt_connected = True
                 logger.info("MQTT connected")
 
@@ -61,10 +65,12 @@ async def mqtt_listener_task() -> None:
                         logger.warning("Error handling MQTT message: %s", exc)
 
         except aiomqtt.MqttError as exc:
+            _active_client = None
             app_state.mqtt_connected = False
             logger.warning("MQTT disconnected: %s — retrying in %ds", exc, reconnect_interval)
             await asyncio.sleep(reconnect_interval)
         except Exception as exc:
+            _active_client = None
             app_state.mqtt_connected = False
             logger.error("Unexpected MQTT error: %s", exc)
             await asyncio.sleep(reconnect_interval)
@@ -121,3 +127,23 @@ def _handle_status(payload: bytes) -> None:
         logger.info("Device status updated: online=%s", online)
     except json.JSONDecodeError as exc:
         logger.warning("Malformed status JSON: %s | raw=%r", exc, payload[:200])
+
+
+async def publish_control_command(device_id: str, command: dict) -> bool:
+    """Publish control command to MQTT topic rumahjamur/{device_id}/control."""
+    global _active_client
+    topic = f"rumahjamur/{device_id}/control"
+    payload = json.dumps(command)
+    try:
+        if _active_client is not None:
+            await _active_client.publish(topic, payload=payload, qos=1)
+            logger.info("Published control command via active client to %s: %s", topic, payload)
+            return True
+        else:
+            async with aiomqtt.Client(BROKER_HOST, port=BROKER_PORT) as client:
+                await client.publish(topic, payload=payload, qos=1)
+                logger.info("Published control command via new client to %s: %s", topic, payload)
+                return True
+    except Exception as exc:
+        logger.error("Failed to publish control command to %s: %s", topic, exc)
+        return False

@@ -25,6 +25,7 @@ class AppState:
     device_online: bool = False
     last_seen_at: Optional[datetime] = None
     mqtt_connected: bool = False
+    mode: str = "AUTO"
 
     @property
     def stale(self) -> bool:
@@ -37,6 +38,8 @@ class AppState:
         self.current_telemetry = payload
         self.last_seen_at = datetime.now(timezone.utc)
         self.device_online = True
+        if "mode" in payload:
+            self.mode = str(payload["mode"])
 
     def mark_device_offline(self) -> None:
         self.device_online = False
@@ -48,6 +51,7 @@ class AppState:
         return {
             "current_telemetry": self.current_telemetry,
             "device_online": self.device_online,
+            "mode": self.mode,
             "stale": self.stale,
             "last_seen_at": (
                 self.last_seen_at.strftime("%Y-%m-%dT%H:%M:%SZ")
