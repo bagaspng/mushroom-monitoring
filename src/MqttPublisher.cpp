@@ -13,6 +13,9 @@
 //   - LWT ensures the broker marks the device offline on disconnect
 // =============================================================
 
+MqttPublisher::ControlCallback MqttPublisher::controlCallback_ = nullptr;
+static bool s_triggerImmediatePublish = false;
+
 MqttPublisher::MqttPublisher()
     : mqttClient_(wifiClient_) {}
 
@@ -21,8 +24,17 @@ void MqttPublisher::begin() {
 
     mqttClient_.setServer(MQTT_BROKER, MQTT_PORT);
     mqttClient_.setBufferSize(MqttConfig::JSON_DOC_SIZE + 64);
+    mqttClient_.setCallback(MqttPublisher::onMqttMessage);
 
     connectWifi();
+}
+
+void MqttPublisher::setControlCallback(ControlCallback cb) {
+    controlCallback_ = cb;
+}
+
+void MqttPublisher::triggerImmediatePublish() {
+    s_triggerImmediatePublish = true;
 }
 
 // ---------------------------------------------------------------------------
@@ -61,9 +73,10 @@ void MqttPublisher::loop(
 
     mqttClient_.loop();
 
-    // --- Publish telemetry on interval ---
-    if (nowMs - lastPublishMs_ >= MqttConfig::PUBLISH_INTERVAL_MS) {
+    // --- Publish telemetry on interval or immediately on trigger ---
+    if (s_triggerImmediatePublish || (nowMs - lastPublishMs_ >= MqttConfig::PUBLISH_INTERVAL_MS)) {
         lastPublishMs_ = nowMs;
+        s_triggerImmediatePublish = false;
         publishTelemetry(snapshot, decision, pump, nowMs);
     }
 }
@@ -72,7 +85,7 @@ bool MqttPublisher::isWifiConnected() const {
     return WiFi.status() == WL_CONNECTED;
 }
 
-bool MqttPublisher::isMqttConnected() const {
+bool MqttPublisher::isMqttConnected() {
     return mqttClient_.connected();
 }
 
@@ -124,10 +137,50 @@ void MqttPublisher::attemptMqttConnect() {
     if (connected) {
         Serial.println(F("[MQTT] Broker connected"));
         publishOnlineStatus(true);
+        mqttClient_.subscribe(MqttConfig::TOPIC_CONTROL);
+        Serial.print(F("[MQTT] Subscribed to "));
+        Serial.println(MqttConfig::TOPIC_CONTROL);
     } else {
         Serial.print(F("[MQTT] Broker connect failed, rc="));
         Serial.println(mqttClient_.state());
     }
+}
+
+void MqttPublisher::onMqttMessage(char* topic, byte* payload, unsigned int length) {
+    if (strcmp(topic, MqttConfig::TOPIC_CONTROL) != 0) {
+        return;
+    }
+
+    JsonDocument doc;
+    DeserializationError err = deserializeJson(doc, payload, length);
+    if (err) {
+        Serial.print(F("[MQTT] Error parsing control command: "));
+        Serial.println(err.c_str());
+        return;
+    }
+
+    ControlMode mode = ControlMode::AUTO;
+    if (doc["mode"].is<const char*>()) {
+        const char* modeStr = doc["mode"];
+        if (modeStr && strcmp(modeStr, "MANUAL") == 0) {
+            mode = ControlMode::MANUAL;
+        }
+    }
+
+    bool pump = false;
+    if (doc["pump"].is<bool>()) {
+        pump = doc["pump"].as<bool>();
+    }
+
+    Serial.printf("[MQTT] Control command received -> Mode: %s, Pump: %s\n",
+                  (mode == ControlMode::MANUAL ? "MANUAL" : "AUTO"),
+                  (pump ? "ON" : "OFF"));
+
+    if (controlCallback_) {
+        controlCallback_(mode, pump);
+    }
+
+    s_triggerImmediatePublish = true;
 }
 
 // ---------------------------------------------------------------------------
@@ -139,10 +192,11 @@ void MqttPublisher::publishTelemetry(
     const PumpController& pump,
     uint32_t nowMs
 ) {
-    StaticJsonDocument<MqttConfig::JSON_DOC_SIZE> doc;
+    JsonDocument doc;
 
     doc["device_id"]   = DEVICE_ID;
     doc["timestamp"]   = buildTimestamp();
+    doc["mode"]        = (decision.mode == ControlMode::MANUAL) ? "MANUAL" : "AUTO";
 
     // Temperature and humidity (NaN → JSON null)
     if (!isnan(snapshot.averageTemperatureC)) {
@@ -223,6 +277,10 @@ const char* MqttPublisher::pumpReasonToStr(
     }
 
     switch (reason) {
+        case PumpDecisionReason::MANUAL_ON:
+            return "MANUAL_ON";
+        case PumpDecisionReason::MANUAL_OFF:
+            return "MANUAL_OFF";
         case PumpDecisionReason::NO_VALID_DHT:
             return "NO_VALID_DHT";
         case PumpDecisionReason::RH_MAX_THRESHOLD:

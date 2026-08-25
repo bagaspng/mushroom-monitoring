@@ -21,6 +21,8 @@ MqttPublisher mqttPublisher;
 
 SensorSnapshot snapshot;
 ControlDecision decision;
+ControlMode currentMode = ControlMode::AUTO;
+bool manualPumpState = false;
 uint32_t lastSensorReadMs = 0;
 bool hasSnapshot = false;
 
@@ -30,11 +32,23 @@ bool hasSnapshot = false;
 // ---------------------------------------------------------------
 void readAndApplyControl(uint32_t nowMs) {
   snapshot = sensorManager.readAll(nowMs);
-  decision = decisionEngine.evaluate(snapshot);
   hasSnapshot = true;
 
-  if (decision.requestPump) {
-    pumpController.startPulse(nowMs, Config::PUMP_ON_DURATION_MS);
+  if (currentMode == ControlMode::AUTO) {
+    decision = decisionEngine.evaluate(snapshot);
+    decision.mode = ControlMode::AUTO;
+
+    if (decision.requestPump) {
+      pumpController.startPulse(nowMs, Config::PUMP_ON_DURATION_MS);
+    }
+  } else {
+    // In MANUAL mode, keep DHT averages/health updated for telemetry,
+    // but pump state and reason follow manual command.
+    decision.mode = ControlMode::MANUAL;
+    decision.requestPump = pumpController.isRunning();
+    decision.reason = pumpController.isRunning()
+        ? PumpDecisionReason::MANUAL_ON
+        : PumpDecisionReason::MANUAL_OFF;
   }
 
   Logger::printSnapshot(
@@ -43,6 +57,31 @@ void readAndApplyControl(uint32_t nowMs) {
       pumpController.state(),
       pumpController.remainingCooldownMs(nowMs)
   );
+}
+
+void handleControlCommand(ControlMode mode, bool pump) {
+  const uint32_t nowMs = millis();
+  currentMode = mode;
+  manualPumpState = pump;
+  decision.mode = mode;
+
+  if (mode == ControlMode::MANUAL) {
+    if (pump) {
+      decision.requestPump = true;
+      decision.reason = PumpDecisionReason::MANUAL_ON;
+      pumpController.startManual(nowMs, Config::PUMP_MAX_ON_MS);
+    } else {
+      decision.requestPump = false;
+      decision.reason = PumpDecisionReason::MANUAL_OFF;
+      pumpController.stopManual(nowMs);
+    }
+  } else {
+    // Switching back to AUTO: if pump was on from manual, stop it
+    if (pumpController.isRunning() && manualPumpState) {
+      pumpController.stopManual(nowMs);
+    }
+    readAndApplyControl(nowMs);
+  }
 }
 
 }  // namespace
@@ -58,6 +97,7 @@ void setup() {
   pumpController.begin();
 
   // Monitoring stack — optional, does not affect pump control
+  mqttPublisher.setControlCallback(handleControlCommand);
   mqttPublisher.begin();
 }
 
