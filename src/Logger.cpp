@@ -31,6 +31,10 @@ const char* pumpDecisionReasonName(
     }
 
     switch (reason) {
+        case PumpDecisionReason::MANUAL_ON:
+            return "Manual Override ON";
+        case PumpDecisionReason::MANUAL_OFF:
+            return "Manual Override OFF";
         case PumpDecisionReason::NO_VALID_DHT:
             return "No valid DHT sensor";
         case PumpDecisionReason::RH_MAX_THRESHOLD:
@@ -56,7 +60,7 @@ void Logger::printStartup() {
     Serial.println();
     Serial.println(F("============================================================"));
     Serial.println(F(" SISTEM MONITORING & MISTING OTOMATIS RUMAH JAMUR"));
-    Serial.println(F(" ESP32 + DHT22 x5 + Soil ADC x3 + Relay"));
+    Serial.println(F(" ESP32 + DHT22 x4 + Soil ADC x2 + Relay"));
     Serial.println(F("============================================================"));
     Serial.printf("Relay pin      : GPIO%u\n", RELAY_PIN);
     Serial.printf(

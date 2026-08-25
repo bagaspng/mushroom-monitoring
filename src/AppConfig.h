@@ -5,12 +5,10 @@
 #define DHT1_PIN 23
 #define DHT2_PIN 19
 #define DHT3_PIN 18
-#define DHT4_PIN 16
-#define DHT5_PIN 17
+#define DHT4_PIN 17
 
-#define SOIL1_PIN 36  // VP / ADC1_CH0
-#define SOIL2_PIN 35  // ADC1_CH7
-#define SOIL3_PIN 34  // ADC1_CH6
+#define SOIL1_PIN 35  // VP / ADC1_CH0
+#define SOIL2_PIN 34  // ADC1_CH7
 
 #define RELAY_PIN 32
 
@@ -18,8 +16,8 @@ namespace Config {
 
 constexpr uint32_t SERIAL_BAUD = 115200UL;
 
-constexpr uint8_t DHT_COUNT = 5;
-constexpr uint8_t SOIL_COUNT = 3;
+constexpr uint8_t DHT_COUNT = 4;
+constexpr uint8_t SOIL_COUNT = 2;
 
 constexpr uint8_t ACTIVE_DHT_INDEX = 0;
 
@@ -28,13 +26,11 @@ constexpr uint8_t DHT_PINS[DHT_COUNT] = {
 	DHT2_PIN,
 	DHT3_PIN,
 	DHT4_PIN,
-	DHT5_PIN,
 };
 
 constexpr uint8_t SOIL_PINS[SOIL_COUNT] = {
 	SOIL1_PIN,
 	SOIL2_PIN,
-	SOIL3_PIN,
 };
 
 constexpr bool RELAY_ACTIVE_LOW = true;
@@ -53,8 +49,8 @@ constexpr uint32_t SERIAL_REPORT_INTERVAL_MS = 10UL * 1000UL;
 
 constexpr uint8_t SOIL_ADC_SAMPLES = 5;
 
-constexpr int SOIL_RAW_DRY[SOIL_COUNT] = {3200, 3200, 3200};
-constexpr int SOIL_RAW_WET[SOIL_COUNT] = {1300, 1300, 1300};
+constexpr int SOIL_RAW_DRY[SOIL_COUNT] = {3200, 3200};
+constexpr int SOIL_RAW_WET[SOIL_COUNT] = {1300, 1300};
 
 constexpr float DHT_MIN_TEMP_C = 0.0F;
 constexpr float DHT_MAX_TEMP_C = 60.0F;
@@ -70,16 +66,16 @@ constexpr float DHT_MAX_RH = 100.0F;
 // ============================================================
 
 #ifndef WIFI_SSID
-#define WIFI_SSID     "YOUR_WIFI_SSID"
+#define WIFI_SSID     "bb"
 #endif
 
 #ifndef WIFI_PASSWORD
-#define WIFI_PASSWORD "YOUR_WIFI_PASSWORD"
+#define WIFI_PASSWORD "12345678"
 #endif
 
 // IP address or hostname of your Mosquitto broker
 #ifndef MQTT_BROKER
-#define MQTT_BROKER   "192.168.1.100"
+#define MQTT_BROKER   "10.21.247.181"
 #endif
 
 #ifndef MQTT_PORT
@@ -112,6 +108,7 @@ constexpr uint32_t MQTT_RECONNECT_INTERVAL_MS = 5UL * 1000UL;
 constexpr const char* TOPIC_PREFIX     = "rumahjamur";
 constexpr const char* TOPIC_TELEMETRY  = "rumahjamur/" DEVICE_ID "/telemetry";
 constexpr const char* TOPIC_STATUS     = "rumahjamur/" DEVICE_ID "/status";
+constexpr const char* TOPIC_CONTROL    = "rumahjamur/" DEVICE_ID "/control";
 
 // JSON document capacity (bytes) for telemetry payload
 constexpr size_t JSON_DOC_SIZE = 512;
