@@ -44,10 +44,33 @@ bool PumpController::startPulse(
     return true;
 }
 
+bool PumpController::startManual(
+    uint32_t nowMs,
+    uint32_t maxDurationMs
+) {
+    if (maxDurationMs == 0) {
+        maxDurationMs = maxOnMs_;
+    } else {
+        maxDurationMs = min(maxDurationMs, maxOnMs_);
+    }
+
+    requestedDurationMs_ = maxDurationMs;
+    startedAtMs_ = nowMs;
+    state_ = PumpState::RUNNING;
+    setRelay(true);
+    return true;
+}
+
 void PumpController::forceStop(uint32_t nowMs) {
     setRelay(false);
     stoppedAtMs_ = nowMs;
     state_ = PumpState::COOLDOWN;
+}
+
+void PumpController::stopManual(uint32_t nowMs) {
+    setRelay(false);
+    stoppedAtMs_ = nowMs;
+    state_ = PumpState::IDLE;
 }
 
 void PumpController::update(uint32_t nowMs) {

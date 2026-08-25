@@ -16,7 +16,9 @@ public:
     void update(uint32_t nowMs);
 
     bool startPulse(uint32_t nowMs, uint32_t requestedDurationMs);
+    bool startManual(uint32_t nowMs, uint32_t maxDurationMs = 0);
     void forceStop(uint32_t nowMs);
+    void stopManual(uint32_t nowMs);
 
     PumpState state() const;
     bool isRunning() const;
