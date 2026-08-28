@@ -1,29 +1,58 @@
 /**
- * services/websocket.js — WebSocket wrapper with auto-reconnect
+ * services/websocket.js — Resilient WebSocket wrapper with auto-reconnect
  *
- * Usage:
- *   const ws = createWebSocket(url, onMessage, onStatusChange);
- *   ws.close();  // clean disconnect
+ * Production Resilient:
+ *   - Auto-resolves wss:// on HTTPS and ws:// on HTTP
+ *   - Defaults to same-origin reverse-proxy (/ws) in production
+ *   - Exponential reconnection backoff with jitter
  */
 
-const RECONNECT_DELAY_MS = 3000;
-const host = typeof window !== 'undefined' && window.location.hostname ? window.location.hostname : 'localhost';
-const wsProto = typeof window !== 'undefined' && window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-const WS_BASE = import.meta.env.VITE_WS_URL || `${wsProto}//${host}:8000`;
+const INITIAL_RECONNECT_DELAY_MS = 2000;
+const MAX_RECONNECT_DELAY_MS = 10000;
+
+function getWebSocketBaseUrl() {
+  if (import.meta.env.VITE_WS_URL) {
+    return import.meta.env.VITE_WS_URL.replace(/\/+$/, '');
+  }
+
+  const isProd = import.meta.env.PROD;
+  const isHttps = typeof window !== 'undefined' && window.location.protocol === 'https:';
+  const wsProto = isHttps ? 'wss:' : 'ws:';
+  const host = typeof window !== 'undefined' && window.location.host ? window.location.host : 'localhost:8000';
+  const hostname = typeof window !== 'undefined' && window.location.hostname ? window.location.hostname : 'localhost';
+
+  if (isProd) {
+    // Production: connect to same origin via Nginx reverse proxy
+    return `${wsProto}//${host}`;
+  }
+
+  // Development fallback: direct to FastAPI port 8000
+  return `${wsProto}//${hostname}:8000`;
+}
 
 export function createWebSocket(onMessage, onStatusChange) {
-  const url = `${WS_BASE}/ws`;
+  const baseUrl = getWebSocketBaseUrl();
+  const url = `${baseUrl}/ws`;
+
   let socket = null;
   let destroyed = false;
   let reconnectTimer = null;
+  let currentDelay = INITIAL_RECONNECT_DELAY_MS;
 
   function connect() {
     if (destroyed) return;
     onStatusChange?.('connecting');
 
-    socket = new WebSocket(url);
+    try {
+      socket = new WebSocket(url);
+    } catch (err) {
+      console.warn('[WS] Socket construction error:', err);
+      scheduleReconnect();
+      return;
+    }
 
     socket.onopen = () => {
+      currentDelay = INITIAL_RECONNECT_DELAY_MS; // reset backoff on success
       onStatusChange?.('connected');
     };
 
@@ -39,14 +68,26 @@ export function createWebSocket(onMessage, onStatusChange) {
     socket.onclose = () => {
       if (destroyed) return;
       onStatusChange?.('disconnected');
-      // Auto-reconnect
-      reconnectTimer = setTimeout(connect, RECONNECT_DELAY_MS);
+      scheduleReconnect();
     };
 
     socket.onerror = () => {
       onStatusChange?.('error');
-      socket.close();
+      try {
+        socket.close();
+      } catch {
+        // Ignored
+      }
     };
+  }
+
+  function scheduleReconnect() {
+    if (destroyed || reconnectTimer) return;
+    reconnectTimer = setTimeout(() => {
+      reconnectTimer = null;
+      currentDelay = Math.min(currentDelay * 1.5, MAX_RECONNECT_DELAY_MS);
+      connect();
+    }, currentDelay);
   }
 
   connect();
@@ -54,8 +95,15 @@ export function createWebSocket(onMessage, onStatusChange) {
   return {
     close() {
       destroyed = true;
-      clearTimeout(reconnectTimer);
-      socket?.close();
+      if (reconnectTimer) {
+        clearTimeout(reconnectTimer);
+        reconnectTimer = null;
+      }
+      try {
+        socket?.close();
+      } catch {
+        // Ignored
+      }
     },
   };
 }

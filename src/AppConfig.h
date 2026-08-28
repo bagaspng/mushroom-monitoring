@@ -70,26 +70,64 @@ constexpr uint32_t SCHEDULE_PUMP_DURATION_MS = 15UL * 1000UL; // 15 Detik
 }  // namespace Config
 
 // ============================================================
-// Wi-Fi + MQTT Configuration
-// Replace WIFI_SSID, WIFI_PASSWORD, and MQTT_BROKER with your
-// actual values before uploading. Do NOT commit real credentials.
+// Wi-Fi + MQTT Environment Profiles (DEV / PROD)
+// To activate production build profile, uncomment USE_PRODUCTION_CONFIG
+// or define it in platformio.ini build_flags = -D USE_PRODUCTION_CONFIG
 // ============================================================
 
-#ifndef WIFI_SSID
-#define WIFI_SSID     "bb"
-#endif
+// #define USE_PRODUCTION_CONFIG
 
-#ifndef WIFI_PASSWORD
-#define WIFI_PASSWORD "12345678"
-#endif
+#ifdef USE_PRODUCTION_CONFIG
+  // Production Profile (Target: sirkulalestari.com / VPS 103.245.38.68)
+  #ifndef WIFI_SSID
+  #define WIFI_SSID         "KUMBUNG_WIFI_SSID"
+  #endif
 
-// IP address or hostname of your Mosquitto broker
-#ifndef MQTT_BROKER
-#define MQTT_BROKER   "10.21.247.181"
-#endif
+  #ifndef WIFI_PASSWORD
+  #define WIFI_PASSWORD     "KUMBUNG_WIFI_PASSWORD"
+  #endif
 
-#ifndef MQTT_PORT
-#define MQTT_PORT     1883
+  #ifndef MQTT_BROKER
+  #define MQTT_BROKER       "sirkulalestari.com"
+  #endif
+
+  #ifndef MQTT_PORT
+  #define MQTT_PORT         1883 // Or 8883 for TLS
+  #endif
+
+  #ifndef MQTT_USERNAME
+  #define MQTT_USERNAME     "esp32_device"
+  #endif
+
+  #ifndef MQTT_PASSWORD
+  #define MQTT_PASSWORD     "ESP32_MQTT_PASSWORD_PLACEHOLDER"
+  #endif
+
+#else
+  // Development Profile (Local LAN Testing)
+  #ifndef WIFI_SSID
+  #define WIFI_SSID         "DEV_WIFI_SSID"
+  #endif
+
+  #ifndef WIFI_PASSWORD
+  #define WIFI_PASSWORD     "DEV_WIFI_PASSWORD"
+  #endif
+
+  #ifndef MQTT_BROKER
+  #define MQTT_BROKER       "127.0.0.1"
+  #endif
+
+  #ifndef MQTT_PORT
+  #define MQTT_PORT         1883
+  #endif
+
+  #ifndef MQTT_USERNAME
+  #define MQTT_USERNAME     nullptr
+  #endif
+
+  #ifndef MQTT_PASSWORD
+  #define MQTT_PASSWORD     nullptr
+  #endif
 #endif
 
 #ifndef MQTT_CLIENT_ID
@@ -101,8 +139,6 @@ constexpr uint32_t SCHEDULE_PUMP_DURATION_MS = 15UL * 1000UL; // 15 Detik
 #endif
 
 // NTP — UTC+7 (WIB / Waktu Indonesia Barat)
-// Waktu disinkronisasi otomatis via NTP begitu Wi-Fi terhubung.
-// Tidak memerlukan RTC eksternal atau penyetelan manual di lapangan.
 #define NTP_SERVER              "pool.ntp.org"
 #define NTP_GMT_OFFSET_SEC      (7 * 3600)  // WIB = UTC+7
 #define NTP_DAYLIGHT_OFFSET_SEC 0

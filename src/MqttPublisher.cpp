@@ -128,9 +128,12 @@ void MqttPublisher::attemptMqttConnect() {
     const uint8_t lwtQos   = 1;
     const bool    lwtRetain = true;
 
+    const char* mqttUser = MQTT_USERNAME;
+    const char* mqttPass = MQTT_PASSWORD;
+
     bool connected = mqttClient_.connect(
         MQTT_CLIENT_ID,
-        nullptr, nullptr,     // no username/password
+        mqttUser, mqttPass,
         lwtTopic, lwtQos, lwtRetain, lwtPayload
     );
 

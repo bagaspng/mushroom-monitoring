@@ -1,0 +1,35 @@
+[Unit]
+Description=Rumah Jamur IoT FastAPI Backend Service
+Documentation=https://sirkulalestari.com
+After=network.target mosquitto.service
+Wants=mosquitto.service
+
+[Service]
+Type=simple
+User=www-data
+Group=www-data
+WorkingDirectory=/var/www/mushroom-monitoring/backend
+EnvironmentFile=/var/www/mushroom-monitoring/backend/.env
+
+# Single worker is strictly preserved for in-memory WebSocket state & 2GB RAM budget
+ExecStart=/var/www/mushroom-monitoring/backend/.venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8000 --workers 1 --no-server-header
+
+# Reliability & Restart Policy
+Restart=always
+RestartSec=5s
+KillSignal=SIGTERM
+TimeoutStopSec=15s
+
+# Security Hardening
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+ReadWritePaths=/var/www/mushroom-monitoring/backend
+
+# Resource Limits for 2GB RAM VPS
+MemoryMax=512M
+TasksMax=100
+
+[Install]
+WantedBy=multi-user.target

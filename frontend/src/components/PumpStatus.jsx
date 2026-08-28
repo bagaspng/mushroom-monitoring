@@ -3,10 +3,11 @@
  * Placed directly below Suhu & Kelembaban cards.
  *
  * Uses custom CSS classes from index.css for guaranteed, generous spacing.
+ * Includes authentication prompting for protected control endpoints in production.
  */
 
 import React, { useState, useEffect } from 'react';
-import { Waves, Zap, Power, Timer, Info, CheckCircle2 } from 'lucide-react';
+import { Waves, Zap, Power, Timer, Info, CheckCircle2, Lock } from 'lucide-react';
 import { api } from '../services/api';
 
 const REASON_LABELS = {
@@ -30,6 +31,7 @@ export function PumpStatus({ telemetry, stale }) {
   const [optimisticPump, setOptimisticPump] = useState(null);
   const [optimisticMode, setOptimisticMode] = useState(null);
   const [loading, setLoading]               = useState(false);
+  const [authError, setAuthError]           = useState(null);
 
   const currentMode = optimisticMode ?? serverMode;
   const isManual    = currentMode === 'MANUAL';
@@ -42,14 +44,38 @@ export function PumpStatus({ telemetry, stale }) {
   const reasonObj   = REASON_LABELS[rawReason] ?? { text: rawReason, icon: '💡' };
   const cooldownSec = t?.cooldown_remaining_s ?? 0;
 
+  const promptForApiKey = () => {
+    const entered = window.prompt('Masukkan Control API Key server untuk mengotorisasi aksi pompa:');
+    if (entered && entered.trim()) {
+      localStorage.setItem('control_api_key', entered.trim());
+      setAuthError(null);
+      return entered.trim();
+    }
+    return null;
+  };
+
   const handleModeChange = async (targetMode) => {
     if (loading || targetMode === currentMode) return;
     setOptimisticMode(targetMode);
+    setAuthError(null);
     try {
       setLoading(true);
       await api.sendControl({ mode: targetMode });
     } catch (err) {
       console.error('Failed to change mode:', err);
+      if (err.status === 401) {
+        setAuthError('Otorisasi diperlukan untuk mengubah mode.');
+        const newKey = promptForApiKey();
+        if (newKey) {
+          try {
+            await api.sendControl({ mode: targetMode, apiKey: newKey });
+            setAuthError(null);
+            return;
+          } catch (retryErr) {
+            console.error('Retry failed:', retryErr);
+          }
+        }
+      }
       setOptimisticMode(null);
     } finally {
       setLoading(false);
@@ -60,11 +86,25 @@ export function PumpStatus({ telemetry, stale }) {
     if (loading || !isManual) return;
     const targetPump = !isOn;
     setOptimisticPump(targetPump);
+    setAuthError(null);
     try {
       setLoading(true);
       await api.sendControl({ mode: 'MANUAL', pump: targetPump });
     } catch (err) {
       console.error('Failed to toggle pump:', err);
+      if (err.status === 401) {
+        setAuthError('Otorisasi diperlukan untuk mengontrol pompa.');
+        const newKey = promptForApiKey();
+        if (newKey) {
+          try {
+            await api.sendControl({ mode: 'MANUAL', pump: targetPump, apiKey: newKey });
+            setAuthError(null);
+            return;
+          } catch (retryErr) {
+            console.error('Retry failed:', retryErr);
+          }
+        }
+      }
       setOptimisticPump(null);
     } finally {
       setLoading(false);
@@ -98,85 +138,79 @@ export function PumpStatus({ telemetry, stale }) {
           >
             <span className={`pop-dot ${isOn ? 'online' : cooldownSec > 0 ? 'connecting' : 'offline'}`} />
             {stale
-              ? 'No Data'
+              ? 'STALE'
               : isOn
-              ? 'SEDANG MENYEMPROT'
+              ? 'POMPA AKTIF'
               : cooldownSec > 0
               ? 'COOLDOWN'
-              : 'STANDBY (MATI)'}
+              : 'IDLE (OFF)'}
           </span>
         </div>
 
-        {/* ---- Body Grid: State Panel (left) + Controls (right) ---- */}
-        <div className="pump-body-grid">
+        {authError && (
+          <div className="alert-banner" style={{ backgroundColor: '#FEE2E2', color: '#991B1B', borderColor: '#F87171', marginBottom: 16 }}>
+            <Lock size={16} />
+            <span>{authError}</span>
+            <button
+              type="button"
+              onClick={promptForApiKey}
+              style={{ marginLeft: 'auto', textDecoration: 'underline', fontWeight: 700, background: 'none', border: 'none', color: '#991B1B', cursor: 'pointer' }}
+            >
+              Masukkan Kunci
+            </button>
+          </div>
+        )}
 
-          {/* Left: Visual Pump State Panel */}
-          <div
-            className="pump-state-panel"
-            style={{ backgroundColor: stateBg, borderColor: stateBord }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
-              {/* Emoji Icon */}
+        {/* ---- Main Status Row ---- */}
+        <div className="pump-main-grid">
+
+          {/* Kolom Kiri: Display Status & Alasan */}
+          <div className="pump-status-col">
+            {/* Visual Pompa Besar */}
+            <div className={`pump-hero-badge ${isOn ? 'pump-active-pulse' : ''}`}>
               <div
-                className="pump-emoji"
+                className="pump-hero-icon"
                 style={{
-                  backgroundColor: isOn ? '#6EE7B7' : cooldownSec > 0 ? '#FDE68A' : '#E2E8F0',
-                  animation: isOn ? 'pulse-dot 1.5s infinite' : 'none',
+                  backgroundColor: isOn ? '#22C55E' : cooldownSec > 0 ? '#F59E0B' : '#64748B',
                 }}
               >
-                {isOn ? '💦' : cooldownSec > 0 ? '⏱️' : '💤'}
+                <Power size={32} color="#FFFFFF" strokeWidth={2.5} />
               </div>
-
-              {/* Status Text */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                <h3
-                  style={{
-                    fontFamily: 'var(--font-heading)',
-                    fontWeight: 800,
-                    fontSize: '1.0625rem',
-                    color: '#1E293B',
-                    lineHeight: 1.2,
-                  }}
-                >
-                  {stale
-                    ? 'Data Tidak Tersedia'
-                    : isOn
-                    ? 'Pompa Sedang Aktif Menyemprot'
-                    : cooldownSec > 0
-                    ? 'Masa Jeda Pendinginan'
-                    : 'Pompa Sedang Standby (Mati)'}
-                </h3>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.875rem', color: '#475569', fontWeight: 500 }}>
-                  <span style={{ color: '#94A3B8' }}>Pemicu:</span>
-                  <span style={{ fontWeight: 700, color: '#1E293B' }}>
-                    {reasonObj.icon} {reasonObj.text}
-                  </span>
-                </div>
+              <div className="pump-hero-text">
+                <span className="pump-hero-label">Status Relay Fisik</span>
+                <span className="pump-hero-val" style={{ color: isOn ? '#15803D' : '#334155' }}>
+                  {isOn ? 'MENYEMPROT' : 'MATI (STANDBY)'}
+                </span>
               </div>
             </div>
 
-            {/* Cooldown Timer */}
+            {/* Reason Box */}
+            <div className="pump-reason-box">
+              <div className="reason-box-header">
+                <span className="reason-box-icon">{reasonObj.icon}</span>
+                <span className="reason-box-title">Alasan Keputusan Pompa</span>
+              </div>
+              <div className="reason-box-body">
+                <p className="reason-text">{reasonObj.text}</p>
+                <code className="reason-raw-code">source: {rawReason}</code>
+              </div>
+            </div>
+
+            {/* Cooldown Timer (bila aktif) */}
             {cooldownSec > 0 && !isOn && (
-              <span
-                className="candy-pill"
-                style={{
-                  backgroundColor: '#FDE68A',
-                  color: '#78350F',
-                  borderColor: '#F59E0B',
-                  alignSelf: 'flex-start',
-                  fontSize: '0.875rem',
-                  padding: '7px 14px',
-                }}
-              >
-                <Timer size={15} strokeWidth={2.5} />
-                <span>Sisa Jeda: <strong>{Math.floor(cooldownSec / 60)}m {cooldownSec % 60}s</strong></span>
-              </span>
+              <div className="cooldown-box animate-pulse-gentle">
+                <Timer size={18} style={{ color: '#D97706', flexShrink: 0 }} />
+                <div className="cooldown-text-group">
+                  <span className="cooldown-title">Masa Jeda Pompa (Cooldown)</span>
+                  <span className="cooldown-timer">{cooldownSec} detik tersisa</span>
+                </div>
+              </div>
             )}
           </div>
 
-          {/* Right: Mode Switch & Action Controls */}
-          <div className="pump-controls">
-            {/* Segmented Mode Switch */}
+          {/* Kolom Kanan: Mode Switcher & Tombol Manual */}
+          <div className="pump-control-col">
+            {/* Mode Switcher Buttons */}
             <div className="mode-switch-wrapper">
               <div className="mode-switch-label">
                 <span>Mode Kontrol</span>
