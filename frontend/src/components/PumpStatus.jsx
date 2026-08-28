@@ -16,6 +16,7 @@ const REASON_LABELS = {
   NO_THRESHOLD_MET:    { text: 'Kondisi Normal (Standby)',           icon: '✨' },
   NO_VALID_DHT:        { text: 'Sensor DHT Error (Safety Lock)',     icon: '⚠️' },
   COOLDOWN:            { text: 'Masa Jeda Aktif (Cooldown)',         icon: '⏱️' },
+  SCHEDULED:           { text: 'Penyemprotan Terjadwal (Jadwal Rutin)', icon: '🗓️' },
   MANUAL_ON:           { text: 'Manual Aktif (ON)',                  icon: '🖐️' },
   MANUAL_OFF:          { text: 'Manual Nonaktif (OFF)',              icon: '🖐️' },
   NONE:                { text: 'Standby',                            icon: '—'  },
