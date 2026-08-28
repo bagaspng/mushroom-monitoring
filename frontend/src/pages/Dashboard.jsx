@@ -1,133 +1,162 @@
 /**
- * pages/Dashboard.jsx — Main dashboard layout
+ * pages/Dashboard.jsx — Master IoT Control Dashboard "Rumah Jamur"
  *
- * Layout (top to bottom):
- *   1. Header — system name + connection indicator
- *   2. HeroEnvironment — temperature + humidity + last update
- *   3. SensorChart — dual Y-axis history chart
- *   4. SoilCard + PumpStatus (side by side on desktop)
- *   5. SystemStatus
- *   6. Threshold (read-only, from ESP32 config)
+ * Layout Hierarchy:
+ * 1. Header (Brand, Live Status, Last Update)
+ * 2. Suhu & Kelembapan Udara (2 Spacious KPI Cards)
+ * 3. Kontrol & Status Pompa (Directly underneath Suhu & Kelembaban)
+ * 4. Grafik Suhu & Kelembapan (Left 8 cols) + Kelembapan Media Tanam (Right 4 cols)
+ * 5. Status Sistem & Perangkat (Left 6 cols) + Threshold Ambang Batas (Right 6 cols)
  */
 
+import React, { useState, useEffect } from 'react';
 import { useTelemetry } from '../hooks/useTelemetry';
 import { HeroEnvironment } from '../components/HeroEnvironment';
 import { SensorChart } from '../components/SensorChart';
-import { SoilCard } from '../components/SoilCard';
 import { PumpStatus } from '../components/PumpStatus';
+import { SoilCard } from '../components/SoilCard';
 import { SystemStatus } from '../components/SystemStatus';
+import { ThresholdPanel } from '../components/ThresholdPanel';
+import { AlertCircle, RefreshCw, Clock } from 'lucide-react';
 
-// ---- Connection indicator in header ----
-function ConnectionBadge({ wsStatus, backendOnline }) {
-  const connected = wsStatus === 'connected' && backendOnline;
-  const label = wsStatus === 'connected'
-    ? (backendOnline ? 'Live' : 'Backend Offline')
-    : wsStatus === 'connecting' ? 'Connecting…'
-    : 'Disconnected';
+// ---- Header Connection Indicator ----
+function HeaderStatus({ wsStatus, backendOnline, lastSeenAt, stale }) {
+  const isLive = wsStatus === 'connected' && backendOnline && !stale;
+  const isConnecting = wsStatus === 'connecting';
 
-  return (
-    <div
-      className="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold"
-      style={{
-        background: connected
-          ? 'rgba(16,217,160,0.1)'
-          : 'rgba(245,158,11,0.1)',
-        border: `1px solid ${connected ? 'rgba(16,217,160,0.3)' : 'rgba(245,158,11,0.3)'}`,
-        color: connected ? 'var(--accent-primary)' : 'var(--accent-warning)',
-      }}
-    >
-      <span
-        className={`status-dot ${connected ? 'online' : wsStatus === 'connecting' ? 'connecting' : 'offline'}`}
-      />
-      {label}
-    </div>
-  );
-}
+  const [secondsAgo, setSecondsAgo] = useState(null);
 
-// ---- Threshold panel (read-only) ----
-function ThresholdPanel({ telemetry }) {
-  // Thresholds are not yet sent via MQTT in this version — show static defaults
-  const defaults = {
-    'RH ON':        '≤ 85 %',
-    'RH OFF':       '≥ 90 %',
-    'RH MAX':       '≥ 95 %',
-    'Suhu Tinggi':  '≥ 30 °C',
-    'Durasi Pompa': '8 detik',
-    'Cooldown':     '300 detik',
-  };
+  useEffect(() => {
+    if (!lastSeenAt) return;
+    const update = () => {
+      const diff = Math.floor((Date.now() - new Date(lastSeenAt).getTime()) / 1000);
+      setSecondsAgo(diff);
+    };
+    update();
+    const id = setInterval(update, 1000);
+    return () => clearInterval(id);
+  }, [lastSeenAt]);
 
   return (
-    <div className="glass-card p-5 animate-slide-up" style={{ animationDelay: '0.25s' }}>
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="font-semibold text-sm" style={{ color: 'var(--text-secondary)' }}>
-          Threshold (Read-only)
-        </h3>
-        <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: 'rgba(148,163,184,0.1)', color: 'var(--text-muted)' }}>
-          Dari AppConfig.h
+    <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+      {/* Live Badge */}
+      <div
+        className="candy-pill"
+        style={{
+          backgroundColor: isLive ? '#DCFCE7' : isConnecting ? '#FEF3C7' : '#FEE2E2',
+          color:           isLive ? '#15803D' : isConnecting ? '#B45309' : '#B91C1C',
+          borderColor:     isLive ? '#16A34A' : isConnecting ? '#D97706' : '#DC2626',
+          fontSize: '0.8125rem',
+          padding: '6px 14px',
+        }}
+      >
+        <span
+          className={`pop-dot ${isLive ? 'online' : isConnecting ? 'connecting' : 'offline'}`}
+          style={{ width: 9, height: 9 }}
+        />
+        <span>{isLive ? 'LIVE' : isConnecting ? 'Connecting…' : 'OFFLINE'}</span>
+      </div>
+
+      {/* Subtle Last Update Info */}
+      <div
+        style={{
+          display: 'none',
+          alignItems: 'center',
+          gap: 6,
+          fontSize: '0.75rem',
+          color: '#64748B',
+          fontWeight: 500,
+        }}
+        className="sm-flex-override"
+      >
+        <Clock size={14} style={{ color: '#94A3B8' }} />
+        <span>
+          {secondsAgo !== null
+            ? secondsAgo < 5
+              ? 'Updated just now'
+              : `Updated ${secondsAgo}s ago`
+            : 'Connecting…'}
         </span>
       </div>
-      <div className="grid grid-cols-2 gap-x-4 gap-y-2">
-        {Object.entries(defaults).map(([key, val]) => (
-          <div key={key} className="flex justify-between items-center">
-            <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{key}</span>
-            <span className="text-xs font-semibold" style={{ color: 'var(--text-secondary)' }}>{val}</span>
-          </div>
-        ))}
-      </div>
-      <p className="mt-3 text-xs" style={{ color: 'var(--text-muted)' }}>
-        Edit di <code>src/AppConfig.h</code> · Tidak ada fitur edit di dashboard
-      </p>
     </div>
   );
 }
 
-// ---- Loading skeleton ----
+// ---- Loading Skeleton ----
 function LoadingSkeleton() {
   return (
-    <div className="space-y-4">
-      {[1, 2, 3].map((i) => (
-        <div
-          key={i}
-          className="glass-card"
-          style={{
-            height: i === 1 ? 120 : i === 2 ? 320 : 180,
-            animation: 'pulse 1.5s ease-in-out infinite',
-          }}
-        />
-      ))}
-      <style>{`
-        @keyframes pulse {
-          0%, 100% { opacity: 0.5; }
-          50%       { opacity: 0.25; }
-        }
-      `}</style>
+    <div className="dashboard-flow" style={{ animation: 'pulse 1.5s ease-in-out infinite' }}>
+      <div className="hero-grid">
+        {[1, 2].map((i) => (
+          <div key={i} className="dashboard-card" style={{ height: 200, backgroundColor: 'rgba(255,255,255,0.7)' }} />
+        ))}
+      </div>
+      <div className="dashboard-card" style={{ height: 176, backgroundColor: 'rgba(255,255,255,0.7)' }} />
+      <div className="col-grid-12">
+        <div className="col-8 dashboard-card" style={{ height: 320, backgroundColor: 'rgba(255,255,255,0.7)' }} />
+        <div className="col-4 dashboard-card" style={{ height: 320, backgroundColor: 'rgba(255,255,255,0.7)' }} />
+      </div>
     </div>
   );
 }
 
-// ---- Error state ----
+// ---- Error State ----
 function ErrorBanner({ message }) {
   return (
     <div
-      className="glass-card p-6 text-center"
-      style={{ border: '1px solid rgba(239,68,68,0.3)' }}
+      className="dashboard-card"
+      style={{
+        padding: 40,
+        textAlign: 'center',
+        backgroundColor: '#FEF2F2',
+        maxWidth: 520,
+        margin: '64px auto',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: 20,
+      }}
     >
-      <p style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>⚠️</p>
-      <p className="font-semibold" style={{ color: 'var(--accent-danger)' }}>
-        {message}
+      <div
+        style={{
+          width: 60,
+          height: 60,
+          borderRadius: '50%',
+          backgroundColor: '#FEE2E2',
+          border: '1.5px solid #1E293B',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          color: '#B91C1C',
+        }}
+      >
+        <AlertCircle size={30} strokeWidth={2.5} />
+      </div>
+      <h3 style={{ fontFamily: 'var(--font-heading)', fontWeight: 700, fontSize: '1.125rem', color: '#1E293B' }}>
+        {message || 'Koneksi ke Backend Gagal'}
+      </h3>
+      <p style={{ fontSize: '0.875rem', color: '#475569', lineHeight: 1.6 }}>
+        Pastikan backend FastAPI aktif berjalan di port 8000 dan Mosquitto broker terhubung.
       </p>
-      <p className="text-sm mt-2" style={{ color: 'var(--text-muted)' }}>
-        Pastikan backend berjalan di localhost:8000 dan coba refresh halaman.
-      </p>
+      <button
+        type="button"
+        onClick={() => window.location.reload()}
+        className="candy-btn"
+        style={{ backgroundColor: '#FBBF24', color: '#1E293B', fontSize: '0.875rem' }}
+      >
+        <RefreshCw size={16} strokeWidth={2.5} />
+        <span>Muat Ulang Dashboard</span>
+      </button>
     </div>
   );
 }
 
-// ---- Main Dashboard ----
 export function Dashboard() {
   const {
     currentData,
     history,
+    historyHours,
+    fetchHistory,
     stale,
     backendOnline,
     wsStatus,
@@ -136,87 +165,145 @@ export function Dashboard() {
   } = useTelemetry();
 
   return (
-    <div
-      style={{
-        minHeight: '100vh',
-        background: `
-          radial-gradient(ellipse 80% 60% at 20% -5%, rgba(16,217,160,0.06) 0%, transparent 60%),
-          radial-gradient(ellipse 60% 50% at 80% 100%, rgba(59,130,246,0.05) 0%, transparent 60%),
-          var(--bg-base)
-        `,
-      }}
-    >
+    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
       {/* ---- Header ---- */}
       <header
         style={{
           position: 'sticky',
           top: 0,
-          zIndex: 50,
-          backdropFilter: 'blur(20px)',
-          background: 'rgba(7,13,26,0.85)',
-          borderBottom: '1px solid var(--border-subtle)',
+          zIndex: 40,
+          backgroundColor: 'rgba(255,253,245,0.96)',
+          backdropFilter: 'blur(8px)',
+          borderBottom: '1.5px solid #1E293B',
+          boxShadow: '0 1px 0 rgba(0,0,0,0.04)',
         }}
       >
-        <div style={{ maxWidth: 900, margin: '0 auto', padding: '0 1rem' }}>
-          <div className="flex items-center justify-between" style={{ height: 56 }}>
-            <div className="flex items-center gap-3">
-              <span style={{ fontSize: '1.5rem' }}>🍄</span>
-              <div>
-                <h1
-                  className="font-bold text-gradient-primary"
-                  style={{ fontSize: 'clamp(0.9rem, 2.5vw, 1.1rem)', lineHeight: 1.2 }}
-                >
-                  Rumah Jamur
-                </h1>
-                <p style={{ fontSize: '0.65rem', color: 'var(--text-muted)', lineHeight: 1 }}>
-                  IoT Monitoring Dashboard
-                </p>
-              </div>
+        <div
+          className="dashboard-container"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            paddingTop: 14,
+            paddingBottom: 14,
+          }}
+        >
+          {/* Brand Left */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+            <div
+              style={{
+                width: 44,
+                height: 44,
+                borderRadius: 14,
+                backgroundColor: '#C4B5FD',
+                border: '1.5px solid #1E293B',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '1.375rem',
+                boxShadow: '2px 2px 0px #1E293B',
+                flexShrink: 0,
+              }}
+            >
+              🍄
             </div>
-            <ConnectionBadge wsStatus={wsStatus} backendOnline={backendOnline} />
+            <div>
+              <h1
+                style={{
+                  fontFamily: 'var(--font-heading)',
+                  fontWeight: 800,
+                  fontSize: '1.1875rem',
+                  color: '#0F172A',
+                  letterSpacing: '-0.03em',
+                  lineHeight: 1.1,
+                }}
+              >
+                Rumah Jamur
+              </h1>
+              <p style={{ fontSize: '0.75rem', color: '#64748B', fontWeight: 500, marginTop: 3 }}>
+                Monitoring &amp; Otomasi Mikroklimat
+              </p>
+            </div>
           </div>
+
+          {/* Status Right */}
+          <HeaderStatus
+            wsStatus={wsStatus}
+            backendOnline={backendOnline}
+            lastSeenAt={currentData?.last_seen_at}
+            stale={stale}
+          />
         </div>
       </header>
 
-      {/* ---- Main content ---- */}
-      <main style={{ maxWidth: 900, margin: '0 auto', padding: '1.5rem 1rem 3rem' }}>
+      {/* ---- Main Dashboard Layout ---- */}
+      <main
+        className="dashboard-container"
+        style={{ paddingTop: 40, paddingBottom: 56, flex: 1 }}
+      >
         {loading ? (
           <LoadingSkeleton />
         ) : error && !currentData ? (
           <ErrorBanner message={error} />
         ) : (
-          <div className="space-y-4">
+          <div className="dashboard-flow">
 
-            {/* 2. Hero Environment */}
-            <HeroEnvironment
-              telemetry={currentData}
-              stale={stale}
-              lastSeenAt={currentData?.last_seen_at}
-            />
+            {/* 1. TOP ROW: Suhu & Kelembapan Udara */}
+            <HeroEnvironment telemetry={currentData} stale={stale} />
 
-            {/* 3. History Chart */}
-            <SensorChart history={history} stale={stale} />
+            {/* 2. ROW 2: Kontrol & Status Pompa */}
+            <PumpStatus telemetry={currentData} stale={stale} />
 
-            {/* 4. Soil + Pump — side by side on desktop */}
-            <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))' }}>
-              <SoilCard telemetry={currentData} stale={stale} />
-              <PumpStatus telemetry={currentData} stale={stale} />
+            {/* 3. ROW 3: Grafik (8 cols) + Media Tanam (4 cols) */}
+            <div className="col-grid-12">
+              <div className="col-8">
+                <SensorChart
+                  history={history}
+                  stale={stale}
+                  historyHours={historyHours}
+                  onSelectRange={fetchHistory}
+                />
+              </div>
+              <div className="col-4">
+                <SoilCard telemetry={currentData} stale={stale} />
+              </div>
             </div>
 
-            {/* 5. System status */}
-            <SystemStatus
-              telemetry={currentData}
-              stale={stale}
-              wsStatus={wsStatus}
-              backendOnline={backendOnline}
-            />
-
-            {/* 6. Threshold (read-only) */}
-            <ThresholdPanel telemetry={currentData} />
+            {/* 4. ROW 4: Status Sistem (6 cols) + Threshold (6 cols) */}
+            <div className="col-grid-12">
+              <div className="col-6">
+                <SystemStatus
+                  telemetry={currentData}
+                  stale={stale}
+                  wsStatus={wsStatus}
+                  backendOnline={backendOnline}
+                />
+              </div>
+              <div className="col-6">
+                <ThresholdPanel />
+              </div>
+            </div>
 
           </div>
         )}
       </main>
+
+      {/* ---- Footer ---- */}
+      <footer
+        style={{
+          borderTop: '1px solid #E2E8F0',
+          paddingTop: 24,
+          paddingBottom: 24,
+          textAlign: 'center',
+          fontSize: '0.8125rem',
+          color: '#94A3B8',
+          fontWeight: 500,
+        }}
+      >
+        <div className="dashboard-container">
+          <p>Rumah Jamur · IoT Mikroklimat Monitoring &amp; Automatic Misting Control · ESP32 + FastAPI + React</p>
+        </div>
+      </footer>
     </div>
   );
 }

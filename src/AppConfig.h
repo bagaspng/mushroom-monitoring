@@ -57,6 +57,16 @@ constexpr float DHT_MAX_TEMP_C = 60.0F;
 constexpr float DHT_MIN_RH = 0.0F;
 constexpr float DHT_MAX_RH = 100.0F;
 
+// ============================================================
+// Scheduled Misting — Penyemprotan Terjadwal (Hybrid Mode)
+// Jadwal berjalan selalu (07:00, 12:00, 17:00 WIB), bersamaan
+// dengan kontrol adaptif sensor DHT22 yang tetap aktif.
+// ============================================================
+constexpr bool     SCHEDULE_ENABLED          = true;
+constexpr uint8_t  SCHEDULE_HOURS_COUNT      = 3;
+constexpr uint8_t  SCHEDULE_HOURS[SCHEDULE_HOURS_COUNT] = {7, 12, 17}; // WIB
+constexpr uint32_t SCHEDULE_PUMP_DURATION_MS = 15UL * 1000UL; // 15 Detik
+
 }  // namespace Config
 
 // ============================================================
@@ -90,9 +100,11 @@ constexpr float DHT_MAX_RH = 100.0F;
 #define DEVICE_ID      "rumah-jamur-01"
 #endif
 
-// NTP server for UTC timestamps in telemetry payload
+// NTP — UTC+7 (WIB / Waktu Indonesia Barat)
+// Waktu disinkronisasi otomatis via NTP begitu Wi-Fi terhubung.
+// Tidak memerlukan RTC eksternal atau penyetelan manual di lapangan.
 #define NTP_SERVER              "pool.ntp.org"
-#define NTP_GMT_OFFSET_SEC      0
+#define NTP_GMT_OFFSET_SEC      (7 * 3600)  // WIB = UTC+7
 #define NTP_DAYLIGHT_OFFSET_SEC 0
 
 namespace MqttConfig {
