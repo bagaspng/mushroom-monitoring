@@ -1,10 +1,6 @@
 /**
  * hooks/useTelemetry.js — Telemetry state management
- *
- * - Loads initial state via REST on mount
- * - Updates in real-time via WebSocket messages
- * - Tracks stale flag: data not updated for > 30s is stale
- * - Provides history data from REST API
+ * Supports real-time WebSocket updates and dynamic historical range (1h, 6h, 12h, 24h)
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
@@ -16,6 +12,7 @@ const STALE_THRESHOLD_MS = 30_000;
 export function useTelemetry() {
   const [currentData, setCurrentData] = useState(null);
   const [history, setHistory] = useState([]);
+  const [historyHours, setHistoryHours] = useState(12);
   const [isStale, setIsStale] = useState(true);
   const [backendOnline, setBackendOnline] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -23,7 +20,18 @@ export function useTelemetry() {
 
   const lastReceivedRef = useRef(null);
 
-  // ---- Load initial data from REST ----
+  // ---- Fetch history for given hours ----
+  const fetchHistory = useCallback(async (hours = 12) => {
+    try {
+      const res = await api.getHistory(hours);
+      setHistory(res.data || []);
+      setHistoryHours(hours);
+    } catch (err) {
+      console.warn('[Telemetry] History fetch error:', err);
+    }
+  }, []);
+
+  // ---- Initial Data Load ----
   useEffect(() => {
     const load = async () => {
       try {
@@ -58,15 +66,14 @@ export function useTelemetry() {
     if (telemetry?.timestamp) {
       setHistory((prev) => {
         const next = [...prev, telemetry];
-        // Keep only last 12h (≈ 4320 rows at 10s interval)
-        return next.slice(-4320);
+        return next.slice(-4320); // max rows
       });
     }
   }, []);
 
   const { wsStatus } = useWebSocket(handleWsMessage);
 
-  // ---- Stale detection: check every 5 seconds ----
+  // ---- Stale detection: check every 4 seconds ----
   useEffect(() => {
     const interval = setInterval(() => {
       if (lastReceivedRef.current === null) {
@@ -75,17 +82,18 @@ export function useTelemetry() {
       }
       const age = Date.now() - lastReceivedRef.current;
       setIsStale(age > STALE_THRESHOLD_MS);
-    }, 5_000);
+    }, 4_000);
 
     return () => clearInterval(interval);
   }, []);
 
-  // Also use backend-side stale flag if available
   const stale = isStale || currentData?.stale === true;
 
   return {
     currentData,
     history,
+    historyHours,
+    fetchHistory,
     stale,
     backendOnline,
     wsStatus,
