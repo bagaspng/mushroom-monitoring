@@ -3,7 +3,8 @@
  * Uses environment variable VITE_API_URL (default: http://localhost:8000)
  */
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+const host = typeof window !== 'undefined' && window.location.hostname ? window.location.hostname : 'localhost';
+const API_BASE = import.meta.env.VITE_API_URL || `http://${host}:8000`;
 
 async function apiFetch(path, options = {}) {
   const res = await fetch(`${API_BASE}${path}`, {
@@ -28,4 +29,11 @@ export const api = {
 
   /** GET /api/config → static configuration */
   getConfig: () => apiFetch('/api/config'),
+
+  /** POST /api/control → send manual/auto mode or pump toggle */
+  sendControl: ({ mode, pump }) =>
+    apiFetch('/api/control', {
+      method: 'POST',
+      body: JSON.stringify({ mode, pump }),
+    }),
 };

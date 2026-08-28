@@ -7,7 +7,9 @@
  */
 
 const RECONNECT_DELAY_MS = 3000;
-const WS_BASE = import.meta.env.VITE_WS_URL || 'ws://localhost:8000';
+const host = typeof window !== 'undefined' && window.location.hostname ? window.location.hostname : 'localhost';
+const wsProto = typeof window !== 'undefined' && window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+const WS_BASE = import.meta.env.VITE_WS_URL || `${wsProto}//${host}:8000`;
 
 export function createWebSocket(onMessage, onStatusChange) {
   const url = `${WS_BASE}/ws`;
