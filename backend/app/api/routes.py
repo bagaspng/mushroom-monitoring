@@ -1,20 +1,33 @@
 """
 api/routes.py — REST API and WebSocket endpoints
 
-Endpoints:
-  GET  /api/status             → backend + MQTT + device health
-  GET  /api/telemetry/current  → current in-memory state
-  GET  /api/history            → SQLite history (default 12h)
-  GET  /api/config             → static configuration info
-  WS   /ws                     → real-time telemetry push
+Production Hardening:
+  - Security authentication on POST /api/control via API Key header
+  - Timing-attack-safe token comparison (secrets.compare_digest)
+  - Clear error responses and status codes
+  - Safe WebSocket connection management with dead socket cleanup
+  - Parameter validation with Pydantic
 """
 
 import json
 import logging
+import os
+import secrets
 from typing import Optional
 
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query
-from pydantic import BaseModel
+from fastapi import (
+    APIRouter,
+    WebSocket,
+    WebSocketDisconnect,
+    Query,
+    Request,
+    HTTPException,
+    Security,
+    status,
+    Depends,
+)
+from fastapi.security import APIKeyHeader, HTTPBearer, HTTPAuthorizationCredentials
+from pydantic import BaseModel, Field
 
 from app.services.state import app_state, STALE_THRESHOLD_S
 from app.database.db import fetch_history, RETENTION_HOURS
@@ -23,10 +36,53 @@ from app.mqtt.client import publish_control_command
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
+APP_ENV = os.getenv("APP_ENV", "development").lower()
+CONTROL_API_KEY = os.getenv("CONTROL_API_KEY", "").strip()
+
+api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
+http_bearer = HTTPBearer(auto_error=False)
+
+
+async def verify_control_auth(
+    api_key: Optional[str] = Security(api_key_header),
+    credentials: Optional[HTTPAuthorizationCredentials] = Security(http_bearer),
+) -> bool:
+    """
+    Authenticate requests to sensitive control endpoints.
+    Checks X-API-Key header or Authorization: Bearer <key>.
+    """
+    provided_key = None
+    if api_key:
+        provided_key = api_key
+    elif credentials and credentials.scheme.lower() == "bearer":
+        provided_key = credentials.credentials
+
+    # Development mode without configured key: allow with warning
+    if not CONTROL_API_KEY:
+        if APP_ENV == "production":
+            logger.error("CONTROL_API_KEY is not configured in production!")
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="Manual control is temporarily disabled: server security key not configured.",
+            )
+        logger.warning("Unauthenticated control request allowed because CONTROL_API_KEY is not set (development mode)")
+        return True
+
+    # Validate key using constant-time comparison
+    if not provided_key or not secrets.compare_digest(provided_key, CONTROL_API_KEY):
+        logger.warning("Unauthorized control request attempt (invalid or missing key)")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Unauthorized: invalid or missing control API key.",
+            headers={"WWW-Authenticate": "Bearer or X-API-Key"},
+        )
+
+    return True
+
 
 class ControlRequest(BaseModel):
-    mode: Optional[str] = None
-    pump: Optional[bool] = None
+    mode: Optional[str] = Field(None, description="Control mode: AUTO or MANUAL")
+    pump: Optional[bool] = Field(None, description="Pump action in MANUAL mode: True for ON, False for OFF")
 
 
 # -----------------------------------------------------------------------
@@ -42,21 +98,22 @@ class ConnectionManager:
         logger.info("WS client connected (total=%d)", len(self._clients))
 
     def disconnect(self, ws: WebSocket) -> None:
-        self._clients.remove(ws)
-        logger.info("WS client disconnected (total=%d)", len(self._clients))
+        if ws in self._clients:
+            self._clients.remove(ws)
+            logger.info("WS client disconnected (total=%d)", len(self._clients))
 
     async def broadcast(self, data: dict) -> None:
-        """Send data to all connected WebSocket clients."""
+        """Send data to all connected WebSocket clients safely."""
         message = json.dumps(data)
         dead: list[WebSocket] = []
-        for client in self._clients:
+        for client in list(self._clients):
             try:
                 await client.send_text(message)
-            except Exception:
+            except Exception as exc:
+                logger.debug("Error broadcasting to WS client: %s", exc)
                 dead.append(client)
         for d in dead:
-            if d in self._clients:
-                self._clients.remove(d)
+            self.disconnect(d)
 
 
 ws_manager = ConnectionManager()
@@ -73,9 +130,10 @@ def get_broadcast_callback():
 
 @router.get("/api/status")
 async def get_status():
-    """Backend health, MQTT connection, device online/offline, stale flag."""
+    """Backend health, MQTT connection status, device online/offline, and stale flag."""
     return {
         "backend": "ok",
+        "environment": APP_ENV,
         "mqtt_connected": app_state.mqtt_connected,
         "device_online": app_state.device_online,
         "stale": app_state.stale,
@@ -128,12 +186,16 @@ async def get_config():
         ],
         "system_state_values": ["NORMAL", "DEGRADED", "ERROR"],
         "control_modes": ["AUTO", "MANUAL"],
+        "auth_required_for_control": bool(CONTROL_API_KEY),
     }
 
 
 @router.post("/api/control")
-async def send_control(req: ControlRequest):
-    """Publish a control command to ESP32 via MQTT and update local state."""
+async def send_control(req: ControlRequest, _auth: bool = Depends(verify_control_auth)):
+    """
+    Publish a control command to ESP32 via MQTT and update local state.
+    Requires authentication via X-API-Key or Authorization Bearer header in production.
+    """
     command = {}
     if req.mode is not None:
         mode_val = req.mode.upper()
@@ -180,7 +242,10 @@ async def websocket_endpoint(ws: WebSocket):
 
         # Keep connection alive; MQTT handler does the pushing
         while True:
-            # Just wait for client disconnect or ping
+            # Await client messages (ping / keepalive / text)
             await ws.receive_text()
     except WebSocketDisconnect:
+        ws_manager.disconnect(ws)
+    except Exception as exc:
+        logger.debug("WebSocket client exception: %s", exc)
         ws_manager.disconnect(ws)
