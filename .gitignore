@@ -32,6 +32,9 @@ __pycache__/
 *.orig
 backend/.env
 backend/*.db
+.pytest_cache/
+htmlcov/
+.coverage
 
 # Node.js & Frontend
 node_modules/
@@ -52,6 +55,17 @@ pnpm-debug.log*
 *.db-shm
 *.db-wal
 *.sqlite3
+
+# Certificates, Keys & Passwords (Strictly Ignored)
+*.pem
+*.key
+*.crt
+*.csr
+*.pfx
+*.p12
+passwd
+passwd.txt
+mosquitto_passwd
 
 # AI Agent Config
 AGENTS.md
