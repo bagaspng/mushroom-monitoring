@@ -17,7 +17,7 @@ DHT22 x4 + Soil x2
       ▼
 SensorManager → DecisionEngine → PumpController → Relay → Pompa DC 12V
 ```
-> **Prinsip Utama**: Kontrol pompa berjalan 100% otonom di ESP32. Jika seluruh monitoring stack (Wi-Fi, Mosquitto, FastAPI, Nginx, Internet) mati, penyemprotan otomatis tetap bekerja normal.
+> **Prinsip Utama**: Kontrol pompa berjalan 100% otonom di ESP32. Jika seluruh monitoring stack (Wi-Fi, Mosquitto, FastAPI, Nginx, Internet) mati, penyemprotan otomatis tetap bekerja normal berdasarkan sensor lokal.
 
 ### B. Monitoring Path (Non-blocking Observer)
 ```
@@ -26,7 +26,112 @@ ESP32 → Wi-Fi (MQTT) → Mosquitto Broker → FastAPI Backend → SQLite (WAL)
 
 ---
 
-## 2. Struktur Repositori
+## 2. Pin Mapping Hardware (ESP32 DevKit 38-Pin)
+
+| Fungsi | Pin ESP32 | Keterangan |
+|---|---|---|
+| **DHT_Z1 DATA** | GPIO 23 | Sensor Suhu & Kelembapan Udara 1 |
+| **DHT_Z2 DATA** | GPIO 19 | Sensor Suhu & Kelembapan Udara 2 |
+| **DHT_Z3 DATA** | GPIO 18 | Sensor Suhu & Kelembapan Udara 3 |
+| **DHT_Z4 DATA** | GPIO 17 | Sensor Suhu & Kelembapan Udara 4 |
+| **SOIL_Z1 AO** | GPIO 35 / VP | Sensor Kelembapan Media Tanam 1 (Monitoring Only) |
+| **SOIL_Z2 AO** | GPIO 34 | Sensor Kelembapan Media Tanam 2 (Monitoring Only) |
+| **RELAY IN** | GPIO 32 | Kontrol Pompa DC 12V (Active-Low) |
+
+---
+
+## 3. Cara Menjalankan Project (Lokal Development)
+
+### Prasyarat
+- [Mosquitto MQTT Broker](https://mosquitto.org/download/) (v2.x)
+- Python 3.11+
+- Node.js 18+ & npm
+- PlatformIO Core / IDE (VSCode extension)
+- Board ESP32 terhubung via kabel USB
+
+---
+
+### Langkah 1: Jalankan Mosquitto (Broker MQTT)
+Buka terminal pertama, jalankan broker dari root project:
+```bash
+mosquitto -c mosquitto/mosquitto.conf -v
+```
+*Broker akan aktif dan mendengarkan koneksi lokal di port `1883`.*
+
+---
+
+### Langkah 2: Jalankan FastAPI Backend
+Buka terminal kedua:
+```bash
+# 1. Masuk ke direktori backend
+cd backend
+
+# 2. Buat & aktifkan virtual environment (jika belum ada)
+python -m venv .venv
+# Windows:
+.venv\Scripts\activate
+# Linux/macOS:
+source .venv/bin/activate
+
+# 3. Install dependensi
+pip install -r requirements.txt
+
+# 4. Salin file environment (jika belum ada)
+cp .env.example .env
+
+# 5. Jalankan server backend FastAPI
+uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
+```
+- REST API aktif di: `http://127.0.0.1:8000`
+- Swagger API Docs di: `http://127.0.0.1:8000/docs`
+- WebSocket endpoint di: `ws://127.0.0.1:8000/ws`
+
+---
+
+### Langkah 3: Jalankan React Frontend (Dashboard)
+Buka terminal ketiga:
+```bash
+# 1. Masuk ke direktori frontend
+cd frontend
+
+# 2. Install dependensi
+npm install
+
+# 3. Salin file environment (jika belum ada)
+cp .env.example .env
+
+# 4. Jalankan dev server Vite
+npm run dev
+```
+Buka browser Anda di **`http://localhost:5173`** (atau URL host lokal yang ditampilkan Vite).
+
+---
+
+### Langkah 4: Build & Upload Firmware ESP32
+Buka terminal keempat dari root project:
+1. Pastikan parameter Wi-Fi dan IP laptop Anda sudah diatur di `src/AppConfig.h`:
+   ```cpp
+   #define WIFI_SSID     "Nama_WiFi_Anda"
+   #define WIFI_PASSWORD "Password_WiFi_Anda"
+   #define MQTT_BROKER   "IP_LAPTOP_ANDA" // Contoh: "192.168.1.100"
+   #define MQTT_PORT     1883
+   ```
+2. Validasi konfigurasi pin & threshold:
+   ```bash
+   python tools/check_config.py
+   ```
+3. Upload firmware ke board ESP32:
+   ```bash
+   pio run --target upload
+   ```
+4. Buka serial monitor untuk memantau log pembacaan sensor:
+   ```bash
+   pio device monitor
+   ```
+
+---
+
+## 4. Struktur Repositori
 
 ```text
 mushroom-monitoring/
@@ -88,22 +193,9 @@ mushroom-monitoring/
 
 ---
 
-## 3. Indeks Dokumentasi Lengkap
+## 5. Pengujian & Verifikasi Kualitas
 
-1. [Arsitektur Sistem (ARCHITECTURE.md)](file:///d:/Documents/PlatformIO/Projects/jamur-dashboard/docs/ARCHITECTURE.md)
-2. [Panduan Pengembangan Lokal (DEVELOPMENT.md)](file:///d:/Documents/PlatformIO/Projects/jamur-dashboard/docs/DEVELOPMENT.md)
-3. [Standar Produksi (PRODUCTION.md)](file:///d:/Documents/PlatformIO/Projects/jamur-dashboard/docs/PRODUCTION.md)
-4. [Spesifikasi MQTT & ACL (MQTT.md)](file:///d:/Documents/PlatformIO/Projects/jamur-dashboard/docs/MQTT.md)
-5. [Keamanan & Proteksi API (SECURITY.md)](file:///d:/Documents/PlatformIO/Projects/jamur-dashboard/docs/SECURITY.md)
-6. [Panduan Deployment VPS (DEPLOYMENT.md)](file:///d:/Documents/PlatformIO/Projects/jamur-dashboard/docs/DEPLOYMENT.md)
-7. [Strategi Pencadangan Database (BACKUP.md)](file:///d:/Documents/PlatformIO/Projects/jamur-dashboard/docs/BACKUP.md)
-8. [Matriks Troubleshooting (TROUBLESHOOTING.md)](file:///d:/Documents/PlatformIO/Projects/jamur-dashboard/docs/TROUBLESHOOTING.md)
-
----
-
-## 4. Pengujian & Verifikasi Kualitas
-
-### Menjalankan Backend Tests
+### Menjalankan Backend Tests (17 Test Suites)
 ```bash
 pytest backend/tests -v
 ```
@@ -120,3 +212,16 @@ npm run build
 python tools/check_config.py
 pio run
 ```
+
+---
+
+## 6. Indeks Dokumentasi Lengkap
+
+1. [Arsitektur Sistem (ARCHITECTURE.md)](file:///d:/Documents/PlatformIO/Projects/jamur-dashboard/docs/ARCHITECTURE.md)
+2. [Panduan Pengembangan Lokal (DEVELOPMENT.md)](file:///d:/Documents/PlatformIO/Projects/jamur-dashboard/docs/DEVELOPMENT.md)
+3. [Standar Produksi (PRODUCTION.md)](file:///d:/Documents/PlatformIO/Projects/jamur-dashboard/docs/PRODUCTION.md)
+4. [Spesifikasi MQTT & ACL (MQTT.md)](file:///d:/Documents/PlatformIO/Projects/jamur-dashboard/docs/MQTT.md)
+5. [Keamanan & Proteksi API (SECURITY.md)](file:///d:/Documents/PlatformIO/Projects/jamur-dashboard/docs/SECURITY.md)
+6. [Panduan Deployment VPS (DEPLOYMENT.md)](file:///d:/Documents/PlatformIO/Projects/jamur-dashboard/docs/DEPLOYMENT.md)
+7. [Strategi Pencadangan Database (BACKUP.md)](file:///d:/Documents/PlatformIO/Projects/jamur-dashboard/docs/BACKUP.md)
+8. [Matriks Troubleshooting (TROUBLESHOOTING.md)](file:///d:/Documents/PlatformIO/Projects/jamur-dashboard/docs/TROUBLESHOOTING.md)

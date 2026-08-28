@@ -18,6 +18,9 @@ import { SoilCard } from '../components/SoilCard';
 import { SystemStatus } from '../components/SystemStatus';
 import { ThresholdPanel } from '../components/ThresholdPanel';
 import { AlertCircle, RefreshCw, Clock } from 'lucide-react';
+import unilaLogo from '../assets/unila.webp';
+import bimaLogo from '../assets/bima.webp';
+import kwtLogo from '../assets/KWT.webp';
 
 // ---- Header Connection Indicator ----
 function HeaderStatus({ wsStatus, backendOnline, lastSeenAt, stale }) {
@@ -178,52 +181,27 @@ export function Dashboard() {
           boxShadow: '0 1px 0 rgba(0,0,0,0.04)',
         }}
       >
-        <div
-          className="dashboard-container"
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            paddingTop: 14,
-            paddingBottom: 14,
-          }}
-        >
+        <div className="dashboard-container header-layout">
           {/* Brand Left */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-            <div
-              style={{
-                width: 44,
-                height: 44,
-                borderRadius: 14,
-                backgroundColor: '#C4B5FD',
-                border: '1.5px solid #1E293B',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '1.375rem',
-                boxShadow: '2px 2px 0px #1E293B',
-                flexShrink: 0,
-              }}
-            >
+          <div className="header-brand">
+            <div className="header-brand-icon">
               🍄
             </div>
             <div>
-              <h1
-                style={{
-                  fontFamily: 'var(--font-heading)',
-                  fontWeight: 800,
-                  fontSize: '1.1875rem',
-                  color: '#0F172A',
-                  letterSpacing: '-0.03em',
-                  lineHeight: 1.1,
-                }}
-              >
+              <h1 className="header-brand-title">
                 Rumah Jamur
               </h1>
-              <p style={{ fontSize: '0.75rem', color: '#64748B', fontWeight: 500, marginTop: 3 }}>
+              <p className="header-brand-subtitle">
                 Monitoring &amp; Otomasi Mikroklimat
               </p>
             </div>
+          </div>
+
+          {/* Center Partner Logos (Unila, BIMA, KWT) */}
+          <div className="header-logos-wrapper" title="Kemitraan: Universitas Lampung, BIMA Kemendikbudristek, KWT">
+            <img src={unilaLogo} alt="Logo Universitas Lampung" className="header-logo-img" />
+            <img src={bimaLogo} alt="Logo BIMA" className="header-logo-img" />
+            <img src={kwtLogo} alt="Logo KWT" className="header-logo-img" />
           </div>
 
           {/* Status Right */}
