@@ -22,7 +22,8 @@ enum class PumpDecisionReason : uint8_t {
     TEMP_HIGH_THRESHOLD,
     NO_THRESHOLD_MET,
     MANUAL_ON,
-    MANUAL_OFF
+    MANUAL_OFF,
+    SCHEDULED      // Penyemprotan jadwal rutin (07:00 / 12:00 / 17:00 WIB)
 };
 
 enum class PumpState : uint8_t {

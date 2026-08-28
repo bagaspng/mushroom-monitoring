@@ -291,6 +291,8 @@ const char* MqttPublisher::pumpReasonToStr(
             return "TEMP_HIGH_THRESHOLD";
         case PumpDecisionReason::NO_THRESHOLD_MET:
             return "NO_THRESHOLD_MET";
+        case PumpDecisionReason::SCHEDULED:
+            return "SCHEDULED";
         case PumpDecisionReason::NONE:
         default:
             return "NONE";

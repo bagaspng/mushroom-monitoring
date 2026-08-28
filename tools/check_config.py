@@ -20,12 +20,13 @@ def number(name: str) -> float:
 
 def integer(name: str) -> int:
     match = re.search(
-        rf"{re.escape(name)}\s*=\s*([0-9]+)",
+        rf"(?:#define\s+{re.escape(name)}\s+([0-9]+)|{re.escape(name)}\s*=\s*([0-9]+))",
         text,
     )
     if not match:
         raise ValueError(f"Konfigurasi {name} tidak ditemukan")
-    return int(match.group(1))
+    val = match.group(1) or match.group(2)
+    return int(val)
 
 errors = []
 
@@ -43,10 +44,8 @@ pin_values = {
     "DHT2_PIN": integer("DHT2_PIN"),
     "DHT3_PIN": integer("DHT3_PIN"),
     "DHT4_PIN": integer("DHT4_PIN"),
-    "DHT5_PIN": integer("DHT5_PIN"),
     "SOIL1_PIN": integer("SOIL1_PIN"),
     "SOIL2_PIN": integer("SOIL2_PIN"),
-    "SOIL3_PIN": integer("SOIL3_PIN"),
     "RELAY_PIN": integer("RELAY_PIN"),
 }
 

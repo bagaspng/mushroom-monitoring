@@ -122,24 +122,13 @@ SensorSnapshot SensorManager::readAll(uint32_t nowMs) {
     }
 
     for (uint8_t i = 0; i < Config::SOIL_COUNT; ++i) {
-        const int raw = readAverageAnalog(
-            Config::SOIL_PINS[i],
-            Config::SOIL_ADC_SAMPLES
-        );
+        // Data dummy random di rentang 70 - 80% (tanpa membaca sensor fisik)
+        const int dummyPercent = constrain(static_cast<int>(random(72, 79)), 70, 80);
 
-        const bool valid = raw >= 0 && raw <= 4095;
-
-        snapshot.soil[i].raw = raw;
-        snapshot.soil[i].valid = valid;
-
-        if (valid) {
-            snapshot.soil[i].percent = rawToPercent(
-                raw,
-                Config::SOIL_RAW_DRY[i],
-                Config::SOIL_RAW_WET[i]
-            );
-            ++snapshot.validSoilCount;
-        }
+        snapshot.soil[i].raw = 1850;
+        snapshot.soil[i].valid = true;
+        snapshot.soil[i].percent = dummyPercent;
+        ++snapshot.validSoilCount;
     }
 
     return snapshot;

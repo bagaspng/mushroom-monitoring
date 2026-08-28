@@ -45,6 +45,8 @@ const char* pumpDecisionReasonName(
             return "Temperature threshold reached";
         case PumpDecisionReason::NO_THRESHOLD_MET:
             return "No threshold reached";
+        case PumpDecisionReason::SCHEDULED:
+            return "Jadwal Rutin (07:00 / 12:00 / 17:00 WIB)";
         default:
             return "Unknown";
     }
