@@ -1,180 +1,696 @@
 @import "tailwindcss";
 
 /* ============================================================
-   Design system — Rumah Jamur Dashboard
-   Dark theme with emerald/teal accents and glassmorphism
+   Playful Geometric Design System — Rumah Jamur Dashboard
+   Refined UI/UX: Generous Whitespace, Big Numbers, Breathing Room
    ============================================================ */
 
-@layer base {
-  :root {
-    --bg-base:        #070d1a;
-    --bg-surface:     #0d1628;
-    --bg-card:        rgba(15, 25, 50, 0.7);
-    --bg-card-hover:  rgba(20, 35, 65, 0.85);
+:root {
+  /* Spacing Scale */
+  --sp-1:  4px;
+  --sp-2:  8px;
+  --sp-3:  12px;
+  --sp-4:  16px;
+  --sp-5:  20px;
+  --sp-6:  24px;
+  --sp-7:  32px;
+  --sp-8:  40px;
+  --sp-9:  48px;
+  --sp-10: 56px;
 
-    --accent-primary:    #10d9a0;  /* emerald-teal */
-    --accent-secondary:  #3b82f6;  /* blue */
-    --accent-warning:    #f59e0b;  /* amber */
-    --accent-danger:     #ef4444;  /* red */
-    --accent-purple:     #a855f7;
+  /* Section Gaps (between cards in the main flow) */
+  --section-gap:    28px;
+  --section-gap-md: 36px;
+  --section-gap-lg: 44px;
 
-    --text-primary:    #e2e8f0;
-    --text-secondary:  #94a3b8;
-    --text-muted:      #475569;
+  /* Card Internal Padding */
+  --card-pad:    28px;
+  --card-pad-md: 32px;
+  --card-pad-lg: 40px;
 
-    --border-subtle:  rgba(148, 163, 184, 0.08);
-    --border-glow:    rgba(16, 217, 160, 0.25);
+  /* Grid Gap between sibling cards */
+  --grid-gap:    20px;
+  --grid-gap-md: 28px;
+  --grid-gap-lg: 32px;
 
-    --glow-primary:   0 0 40px rgba(16, 217, 160, 0.15);
-    --glow-blue:      0 0 40px rgba(59, 130, 246, 0.15);
-    --glow-danger:    0 0 40px rgba(239, 68, 68, 0.15);
-  }
+  /* Color Palette */
+  --bg-app:             #FFFDF5;
+  --fg-app:             #1E293B;
+  --card-bg:            #FFFFFF;
+  --surface-muted:      #F8FAFC;
+  --surface-subtle:     #F1F5F9;
+  --text-muted:         #64748B;
+  --text-subtle:        #94A3B8;
 
-  * {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
-  }
+  --border-color:       #1E293B;
+  --border-subtle:      #E2E8F0;
 
-  html {
-    font-size: 16px;
-    -webkit-font-smoothing: antialiased;
-  }
+  /* Semantic Accents */
+  --color-green:        #10B981;
+  --color-green-light:  #DCFCE7;
+  --color-yellow:       #F59E0B;
+  --color-yellow-light: #FEF3C7;
+  --color-red:          #EF4444;
+  --color-red-light:    #FEE2E2;
+  --color-violet:       #8B5CF6;
+  --color-violet-light: #EDE9FE;
+  --color-pink:         #F472B6;
+  --color-pink-light:   #FCE7F3;
+  --color-sky:          #0284C7;
+  --color-sky-light:    #E0F2FE;
 
-  body {
-    font-family: 'Inter', system-ui, -apple-system, sans-serif;
-    background-color: var(--bg-base);
-    color: var(--text-primary);
-    min-height: 100vh;
-    line-height: 1.6;
-  }
+  /* Hard Pop Shadows */
+  --shadow-pop-sm:  2px 2px 0px #1E293B;
+  --shadow-pop-md:  4px 4px 0px #1E293B;
+  --shadow-pop-lg:  6px 6px 0px #1E293B;
 
-  #root {
-    min-height: 100vh;
+  /* Typography */
+  --font-heading: 'Outfit', system-ui, -apple-system, sans-serif;
+  --font-body:    'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+}
+
+/* ============================================================
+   CSS Reset — Scoped, non-conflicting with Tailwind v4
+   ============================================================ */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+/* Scoped reset — only reset elements that need it, not generic * */
+html, body, div, span, applet, object, iframe,
+h1, h2, h3, h4, h5, h6, p, blockquote, pre,
+a, abbr, acronym, address, big, cite, code,
+del, dfn, em, img, ins, kbd, q, s, samp,
+small, strike, strong, sub, sup, tt, var,
+b, u, i, center, dl, dt, dd, ol, ul, li,
+fieldset, form, label, legend, table, caption,
+tbody, tfoot, thead, tr, th, td,
+article, aside, canvas, details, embed,
+figure, figcaption, footer, header, hgroup,
+menu, nav, output, ruby, section, summary,
+time, mark, audio, video {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  vertical-align: baseline;
+}
+
+html {
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  font-family: var(--font-body);
+  background-color: var(--bg-app);
+  color: var(--fg-app);
+  min-height: 100vh;
+  line-height: 1.6;
+  background-image: radial-gradient(#CBD5E1 1.25px, transparent 1.25px);
+  background-size: 28px 28px;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-heading);
+  letter-spacing: -0.02em;
+}
+
+/* ============================================================
+   Layout & Container
+   ============================================================ */
+
+.dashboard-container {
+  max-width: 1440px;
+  width: calc(100% - 40px);
+  margin-inline: auto;
+}
+
+@media (min-width: 640px) {
+  .dashboard-container {
+    width: calc(100% - 56px);
   }
 }
 
-@layer components {
-
-  /* ---- Glass card ---- */
-  .glass-card {
-    background: var(--bg-card);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    border: 1px solid var(--border-subtle);
-    border-radius: 1rem;
-    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+@media (min-width: 1024px) {
+  .dashboard-container {
+    width: calc(100% - 80px);
   }
+}
 
-  .glass-card:hover {
-    border-color: rgba(148, 163, 184, 0.15);
+/* ============================================================
+   Dashboard Layout Flow — using flex + gap so the reset
+   does NOT fight Tailwind's :where() specificity
+   ============================================================ */
+
+.dashboard-flow {
+  display: flex;
+  flex-direction: column;
+  gap: var(--section-gap);
+}
+
+@media (min-width: 768px) {
+  .dashboard-flow {
+    gap: var(--section-gap-md);
   }
+}
 
-  /* ---- Status badge ---- */
-  .status-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    display: inline-block;
-    flex-shrink: 0;
+@media (min-width: 1024px) {
+  .dashboard-flow {
+    gap: var(--section-gap-lg);
   }
+}
 
-  .status-dot.online {
-    background: var(--accent-primary);
-    box-shadow: 0 0 8px var(--accent-primary);
-    animation: pulse-dot 2s ease-in-out infinite;
+/* Two-column grid used in HeroEnvironment */
+.hero-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--grid-gap);
+}
+
+@media (min-width: 768px) {
+  .hero-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: var(--grid-gap-md);
   }
+}
 
-  .status-dot.offline {
-    background: var(--accent-danger);
+@media (min-width: 1024px) {
+  .hero-grid {
+    gap: var(--grid-gap-lg);
   }
+}
 
-  .status-dot.stale {
-    background: var(--accent-warning);
+/* 12-col grid (8+4 for chart row, 6+6 for status row) */
+.col-grid-12 {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--grid-gap);
+}
+
+@media (min-width: 1024px) {
+  .col-grid-12 {
+    grid-template-columns: repeat(12, 1fr);
+    gap: var(--grid-gap-lg);
+    align-items: stretch;
   }
+}
 
-  .status-dot.connecting {
-    background: var(--accent-warning);
-    animation: pulse-dot 1s ease-in-out infinite;
+.col-8  { grid-column: span 1; }
+.col-4  { grid-column: span 1; }
+.col-6  { grid-column: span 1; }
+
+@media (min-width: 1024px) {
+  .col-8  { grid-column: span 8; }
+  .col-4  { grid-column: span 4; }
+  .col-6  { grid-column: span 6; }
+}
+
+/* ============================================================
+   Base Card
+   ============================================================ */
+
+.dashboard-card {
+  background-color: #FFFFFF;
+  border: 1.5px solid var(--border-color);
+  border-radius: 20px;
+  box-shadow: var(--shadow-pop-md);
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1),
+              box-shadow 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.dashboard-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-pop-lg);
+}
+
+/* Card internal padding — using custom class to avoid reset conflict */
+.card-body {
+  padding: var(--card-pad);
+}
+
+@media (min-width: 768px) {
+  .card-body {
+    padding: var(--card-pad-md);
   }
+}
 
-  /* ---- Animations ---- */
-  @keyframes pulse-dot {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.4; }
+@media (min-width: 1024px) {
+  .card-body {
+    padding: var(--card-pad-lg);
   }
+}
 
-  @keyframes slide-up {
-    from { opacity: 0; transform: translateY(12px); }
-    to   { opacity: 1; transform: translateY(0); }
+/* Card header separator */
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding-bottom: 4px;
+  border-bottom: 1.5px solid #F1F5F9;
+  margin-bottom: 4px;
+}
+
+/* Card footer separator */
+.card-footer {
+  padding-top: 8px;
+  border-top: 1.5px solid #F1F5F9;
+  margin-top: 8px;
+}
+
+/* Card icon badge */
+.card-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  border: 1.5px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: var(--shadow-pop-sm);
+}
+
+/* Card title group */
+.card-title-group {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex: 1;
+  min-width: 0;
+}
+
+.card-title {
+  font-family: var(--font-heading);
+  font-size: 1rem;
+  font-weight: 700;
+  color: #1E293B;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+@media (min-width: 640px) {
+  .card-title {
+    font-size: 1.125rem;
   }
+}
 
-  @keyframes fade-in {
-    from { opacity: 0; }
-    to   { opacity: 1; }
+.card-subtitle {
+  font-size: 0.75rem;
+  color: #94A3B8;
+  font-weight: 500;
+  margin-top: 3px;
+  line-height: 1;
+}
+
+/* ============================================================
+   Primary Metric (Big Number)
+   ============================================================ */
+
+.metric-value-primary {
+  font-family: var(--font-heading);
+  font-size: clamp(2.75rem, 5vw, 3.5rem);
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.04em;
+  color: var(--fg-app);
+}
+
+.metric-value-area {
+  padding-top: 2px;
+  padding-bottom: 2px;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+/* ============================================================
+   Candy Button
+   ============================================================ */
+
+.candy-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 0.9375rem;
+  border-radius: 9999px;
+  border: 1.5px solid var(--border-color);
+  box-shadow: var(--shadow-pop-sm);
+  cursor: pointer;
+  transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1),
+              box-shadow 0.15s cubic-bezier(0.34, 1.56, 0.64, 1),
+              background-color 0.15s ease;
+  user-select: none;
+  padding: 10px 20px;
+  white-space: nowrap;
+}
+
+.candy-btn:hover:not(:disabled) {
+  transform: translate(-1px, -1px);
+  box-shadow: var(--shadow-pop-md);
+}
+
+.candy-btn:active:not(:disabled) {
+  transform: translate(1px, 1px);
+  box-shadow: 1px 1px 0px #1E293B;
+}
+
+.candy-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: 1px 1px 0px #1E293B;
+}
+
+/* ============================================================
+   Candy Pill Badge
+   ============================================================ */
+
+.candy-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 0.75rem;
+  padding: 5px 12px;
+  border-radius: 9999px;
+  border: 1.5px solid var(--border-color);
+  box-shadow: 1.5px 1.5px 0px #1E293B;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* ============================================================
+   Status Item (used in SystemStatus grid tiles)
+   ============================================================ */
+
+.status-tile {
+  padding: 16px 18px;
+  border-radius: 14px;
+  background-color: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  transition: transform 0.15s ease;
+}
+
+.status-tile:hover {
+  transform: translateY(-1px);
+}
+
+.status-tile-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background-color: #FFFFFF;
+  border: 1px solid #CBD5E1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: #475569;
+}
+
+.status-tile-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 5px 10px;
+  border-radius: 9999px;
+  border: 1px solid #CBD5E1;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+/* ============================================================
+   Threshold Tile
+   ============================================================ */
+
+.threshold-tile {
+  padding: 18px 20px;
+  border-radius: 14px;
+  background-color: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  transition: transform 0.15s ease;
+}
+
+.threshold-tile:hover {
+  transform: translateY(-2px);
+}
+
+/* ============================================================
+   Grid layouts for status/threshold panels
+   ============================================================ */
+
+.status-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+
+@media (min-width: 500px) {
+  .status-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
   }
+}
 
-  @keyframes spin-slow {
-    to { transform: rotate(360deg); }
+@media (min-width: 640px) {
+  .status-grid {
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 14px;
   }
+}
 
-  .animate-slide-up {
-    animation: slide-up 0.4s ease forwards;
+.threshold-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+@media (min-width: 500px) {
+  .threshold-grid {
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 14px;
   }
+}
 
-  .animate-fade-in {
-    animation: fade-in 0.3s ease forwards;
-  }
+/* ============================================================
+   Pump Status internal layout
+   ============================================================ */
 
-  /* ---- Gradient text ---- */
-  .text-gradient-primary {
-    background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-  }
+.pump-body-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 24px;
+  align-items: start;
+}
 
-  /* ---- Metric value ---- */
-  .metric-value {
-    font-size: clamp(2.5rem, 5vw, 4rem);
-    font-weight: 800;
-    line-height: 1;
-    letter-spacing: -0.02em;
-  }
-
-  /* ---- Pump state ---- */
-  .pump-on {
-    background: linear-gradient(135deg, rgba(16, 217, 160, 0.15), rgba(59, 130, 246, 0.1));
-    border-color: rgba(16, 217, 160, 0.4) !important;
-    box-shadow: var(--glow-primary);
-  }
-
-  .pump-off {
-    background: var(--bg-card);
-  }
-
-  /* ---- No data banner ---- */
-  .no-data-banner {
-    background: linear-gradient(135deg, rgba(245, 158, 11, 0.1), rgba(239, 68, 68, 0.05));
-    border: 1px solid rgba(245, 158, 11, 0.3);
-    border-radius: 0.75rem;
-    padding: 0.75rem 1rem;
-    display: flex;
+@media (min-width: 1024px) {
+  .pump-body-grid {
+    grid-template-columns: 7fr 5fr;
+    gap: 32px;
     align-items: center;
-    gap: 0.5rem;
-    font-size: 0.875rem;
-    color: var(--accent-warning);
   }
+}
 
-  /* ---- Scrollbar ---- */
-  ::-webkit-scrollbar {
-    width: 6px;
+.pump-state-panel {
+  padding: 24px 28px;
+  border-radius: 16px;
+  border: 1.5px solid #E2E8F0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  transition: background-color 0.3s ease;
+}
+
+@media (min-width: 640px) {
+  .pump-state-panel {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
   }
-  ::-webkit-scrollbar-track {
-    background: transparent;
-  }
-  ::-webkit-scrollbar-thumb {
-    background: rgba(148, 163, 184, 0.15);
-    border-radius: 3px;
-  }
+}
+
+.pump-emoji {
+  width: 60px;
+  height: 60px;
+  border-radius: 16px;
+  border: 1.5px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.625rem;
+  flex-shrink: 0;
+  box-shadow: var(--shadow-pop-sm);
+}
+
+.pump-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.mode-switch-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.mode-switch-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #64748B;
+}
+
+.mode-switch-track {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  padding: 6px;
+  border-radius: 14px;
+  background-color: #F1F5F9;
+  border: 1.5px solid #CBD5E1;
+}
+
+.mode-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 11px 16px;
+  border-radius: 10px;
+  font-size: 0.875rem;
+  font-weight: 700;
+  font-family: var(--font-heading);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  border: 1.5px solid transparent;
+  background: transparent;
+  color: #64748B;
+}
+
+.mode-btn:hover:not(:disabled) {
+  color: #1E293B;
+  background-color: #FFFFFF;
+}
+
+.mode-btn.active-auto {
+  background-color: #8B5CF6;
+  color: #FFFFFF;
+  border-color: #1E293B;
+  box-shadow: 1px 1px 0px #1E293B;
+}
+
+.mode-btn.active-manual {
+  background-color: #F472B6;
+  color: #FFFFFF;
+  border-color: #1E293B;
+  box-shadow: 1px 1px 0px #1E293B;
+}
+
+.pump-action-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-top: 16px;
+  border-top: 1.5px dashed #E2E8F0;
+}
+
+.pump-info-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 0.75rem;
+  color: #64748B;
+  padding: 2px 4px;
+}
+
+.auto-info-box {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.8125rem;
+  color: #166534;
+  background-color: #F0FDF4;
+  padding: 14px 16px;
+  border-radius: 12px;
+  border: 1px solid #BBF7D0;
+  line-height: 1.4;
+}
+
+/* ============================================================
+   Pop Dot (Live Pulse Indicator)
+   ============================================================ */
+
+.pop-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 9999px;
+  border: 1.5px solid var(--border-color);
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.pop-dot.online    { background-color: var(--color-green);  animation: pulse-dot 1.5s infinite; }
+.pop-dot.offline   { background-color: var(--color-red); }
+.pop-dot.stale     { background-color: var(--color-yellow); }
+.pop-dot.connecting { background-color: var(--color-yellow); animation: pulse-scale 1s infinite alternate; }
+
+/* ============================================================
+   Animations
+   ============================================================ */
+
+@keyframes pulse-dot {
+  0%, 100% { transform: scale(1); }
+  50%       { transform: scale(1.3); }
+}
+
+@keyframes pulse-scale {
+  0%   { transform: scale(0.8); }
+  100% { transform: scale(1.2); }
+}
+
+@keyframes pop-in {
+  0%   { opacity: 0; transform: scale(0.97) translateY(8px); }
+  100% { opacity: 1; transform: scale(1)    translateY(0); }
+}
+
+.animate-pop-in {
+  animation: pop-in 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+/* ============================================================
+   Scrollbar
+   ============================================================ */
+
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track  { background: #FFFDF5; }
+::-webkit-scrollbar-thumb  {
+  background: #CBD5E1;
+  border-radius: 9999px;
+  border: 1.5px solid var(--border-color);
 }
