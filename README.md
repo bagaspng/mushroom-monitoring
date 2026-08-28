@@ -85,15 +85,15 @@ jamur-dashboard/
 
 ## 3. Pin Mapping Firmware
 
-| Fungsi | ESP32 |
-|---|---:|
-| DHT_Z1 DATA | GPIO23 |
-| DHT_Z2 DATA | GPIO19 |
-| DHT_Z3 DATA | GPIO18 |
-| DHT_Z4 DATA | GPIO17 |
-| SOIL_Z1 AO | GPIO36 / VP |
-| SOIL_Z2 AO | GPIO35 |
-| Relay IN | GPIO32 |
+| Fungsi      |       ESP32 |
+| ----------- | ----------: |
+| DHT_Z1 DATA |      GPIO23 |
+| DHT_Z2 DATA |      GPIO19 |
+| DHT_Z3 DATA |      GPIO18 |
+| DHT_Z4 DATA |      GPIO17 |
+| SOIL_Z1 AO  | GPIO36 / VP |
+| SOIL_Z2 AO  |      GPIO35 |
+| Relay IN    |      GPIO32 |
 
 LCD I2C dan CD74HC4067 tidak digunakan pada wiring final.  
 Soil sensor tidak mempengaruhi keputusan pompa, hanya data monitoring.
@@ -104,41 +104,41 @@ Soil sensor tidak mempengaruhi keputusan pompa, hanya data monitoring.
 
 ### Topics
 
-| Topic | Publisher | Keterangan |
-|---|---|---|
-| `rumahjamur/{device_id}/telemetry` | ESP32 | Setiap 10 detik |
-| `rumahjamur/{device_id}/status` | ESP32 + LWT | `{"online":true/false}` retained |
+| Topic                              | Publisher   | Keterangan                       |
+| ---------------------------------- | ----------- | -------------------------------- |
+| `rumahjamur/{device_id}/telemetry` | ESP32       | Setiap 10 detik                  |
+| `rumahjamur/{device_id}/status`    | ESP32 + LWT | `{"online":true/false}` retained |
 
 ### Telemetry Payload
 
 ```json
 {
-  "device_id":           "rumah-jamur-01",
-  "timestamp":           "2025-01-01T00:00:00Z",
-  "temperature":         28.4,
-  "humidity":            87.2,
-  "soil_average":        61.7,
-  "dht_valid":           4,
-  "dht_total":           4,
-  "soil_valid":          2,
-  "soil_total":          2,
-  "pump":                false,
-  "pump_reason":         "NO_THRESHOLD_MET",
-  "system_state":        "NORMAL",
+  "device_id": "rumah-jamur-01",
+  "timestamp": "2025-01-01T00:00:00Z",
+  "temperature": 28.4,
+  "humidity": 87.2,
+  "soil_average": 61.7,
+  "dht_valid": 4,
+  "dht_total": 4,
+  "soil_valid": 2,
+  "soil_total": 2,
+  "pump": false,
+  "pump_reason": "NO_THRESHOLD_MET",
+  "system_state": "NORMAL",
   "cooldown_remaining_s": 0
 }
 ```
 
 ### Nilai `pump_reason` (dari `Types.h` — source of truth)
 
-| Nilai | Kondisi |
-|---|---|
-| `HUMIDITY_DEMAND` | RH ≤ RH_ON_THRESHOLD |
-| `TEMP_HIGH_THRESHOLD` | Suhu ≥ TEMP_HIGH_THRESHOLD_C |
-| `NO_THRESHOLD_MET` | Kondisi normal, pompa OFF |
-| `RH_MAX_THRESHOLD` | RH ≥ RH_MAX_THRESHOLD, pompa diblokir |
-| `NO_VALID_DHT` | 0 DHT valid, pompa diblokir |
-| `COOLDOWN` | PumpState::COOLDOWN aktif |
+| Nilai                 | Kondisi                               |
+| --------------------- | ------------------------------------- |
+| `HUMIDITY_DEMAND`     | RH ≤ RH_ON_THRESHOLD                  |
+| `TEMP_HIGH_THRESHOLD` | Suhu ≥ TEMP_HIGH_THRESHOLD_C          |
+| `NO_THRESHOLD_MET`    | Kondisi normal, pompa OFF             |
+| `RH_MAX_THRESHOLD`    | RH ≥ RH_MAX_THRESHOLD, pompa diblokir |
+| `NO_VALID_DHT`        | 0 DHT valid, pompa diblokir           |
+| `COOLDOWN`            | PumpState::COOLDOWN aktif             |
 
 ### LWT (Last Will Testament)
 
@@ -169,6 +169,7 @@ mosquitto -c mosquitto/mosquitto.conf
 ```
 
 Subscribe semua topic untuk debug:
+
 ```bash
 mosquitto_sub -h localhost -t "rumahjamur/#" -v
 ```
@@ -180,7 +181,7 @@ cd backend
 copy .env.example .env      # Windows
 # cp .env.example .env      # Linux/macOS
 pip install -r requirements.txt
-python -m uvicorn app.main:app --reload --port 8000
+python -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
 Endpoint tersedia di `http://localhost:8000/docs`
@@ -191,7 +192,7 @@ Endpoint tersedia di `http://localhost:8000/docs`
 cd frontend
 copy .env.example .env      # Windows
 npm install
-npm run dev
+npm run dev -- --host
 ```
 
 Buka: **http://localhost:5173**
@@ -204,6 +205,7 @@ Buka: **http://localhost:5173**
 ```bash
 pio run --target upload
 pio device monitor
+pio run -t upload -t monitor
 ```
 
 ### Urutan Startup yang Benar
@@ -263,16 +265,16 @@ pio device monitor
 
 ### Threshold Pompa (AppConfig.h)
 
-| Parameter | Nilai awal |
-|---|---:|
-| RH ON | 85% |
-| RH OFF | 90% |
-| RH maksimum | 95% |
-| Suhu tinggi | 30 °C |
-| Pompa ON | 8 detik |
-| Cooldown | 300 detik |
-| Maksimum ON pengaman | 15 detik |
-| Interval pembacaan | 5 detik |
+| Parameter            | Nilai awal |
+| -------------------- | ---------: |
+| RH ON                |        85% |
+| RH OFF               |        90% |
+| RH maksimum          |        95% |
+| Suhu tinggi          |      30 °C |
+| Pompa ON             |    8 detik |
+| Cooldown             |  300 detik |
+| Maksimum ON pengaman |   15 detik |
+| Interval pembacaan   |    5 detik |
 
 Nilai ini adalah **nilai awal pengujian**, bukan angka final untuk semua kondisi.
 
@@ -288,13 +290,13 @@ Lihat `frontend/.env.example`
 
 ## 9. REST API Backend
 
-| Endpoint | Keterangan |
-|---|---|
-| `GET /api/status` | Status backend, MQTT, device |
-| `GET /api/telemetry/current` | State telemetry terkini dari memory |
-| `GET /api/history?hours=12` | Data historis dari SQLite |
-| `GET /api/config` | Konfigurasi statis |
-| `WS /ws` | Real-time push setiap telemetry baru |
+| Endpoint                     | Keterangan                           |
+| ---------------------------- | ------------------------------------ |
+| `GET /api/status`            | Status backend, MQTT, device         |
+| `GET /api/telemetry/current` | State telemetry terkini dari memory  |
+| `GET /api/history?hours=12`  | Data historis dari SQLite            |
+| `GET /api/config`            | Konfigurasi statis                   |
+| `WS /ws`                     | Real-time push setiap telemetry baru |
 
 ---
 
@@ -317,6 +319,7 @@ Jika RH >= RH_MAX (95%), pompa diblokir meskipun ada demand.
 Jika 0 DHT valid, pompa wajib OFF.
 
 Siklus pompa:
+
 ```text
 ON 8 detik → OFF → Cooldown 300 detik → evaluasi ulang
 ```
@@ -378,11 +381,11 @@ Lihat [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) untuk troubleshooting h
 
 ## 16. Status Kesehatan DHT
 
-| Status | Kondisi |
-|---|---|
-| `NORMAL` | 4/4 DHT valid |
+| Status     | Kondisi         |
+| ---------- | --------------- |
+| `NORMAL`   | 4/4 DHT valid   |
 | `DEGRADED` | 1-3/4 DHT valid |
-| `ERROR` | 0/4 DHT valid |
+| `ERROR`    | 0/4 DHT valid   |
 
 ---
 

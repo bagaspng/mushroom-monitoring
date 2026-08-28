@@ -121,6 +121,7 @@ async def get_config():
             "HUMIDITY_DEMAND",
             "TEMP_HIGH_THRESHOLD",
             "NO_THRESHOLD_MET",
+            "SCHEDULED",
             "COOLDOWN",
             "MANUAL_ON",
             "MANUAL_OFF",
