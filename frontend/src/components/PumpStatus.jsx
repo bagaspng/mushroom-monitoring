@@ -262,7 +262,7 @@ export function PumpStatus({ telemetry, stale }) {
 
                 <div className="pump-info-note">
                   <Info size={15} style={{ color: '#F472B6', flexShrink: 0, marginTop: 1 }} />
-                  <span>Manual dibatasi maksimal 15 detik/siklus demi keamanan pompa.</span>
+                  <span>Manual dibatasi maksimal 1 menit/siklus demi keamanan pompa.</span>
                 </div>
               </div>
             ) : (

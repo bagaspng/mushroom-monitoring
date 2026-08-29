@@ -22,6 +22,15 @@ MqttPublisher::MqttPublisher()
 void MqttPublisher::begin() {
     Serial.println(F("[MQTT] Publisher initializing..."));
 
+#if MQTT_USE_TLS
+    wifiSecureClient_.setInsecure(); // Enable TLS without static CA certificate requirement
+    mqttClient_.setClient(wifiSecureClient_);
+    Serial.println(F("[MQTT] TLS mode enabled on port 8883"));
+#else
+    mqttClient_.setClient(wifiClient_);
+    Serial.println(F("[MQTT] Standard TCP mode enabled on port 1883"));
+#endif
+
     mqttClient_.setServer(MQTT_BROKER, MQTT_PORT);
     mqttClient_.setBufferSize(MqttConfig::JSON_DOC_SIZE + 64);
     mqttClient_.setCallback(MqttPublisher::onMqttMessage);

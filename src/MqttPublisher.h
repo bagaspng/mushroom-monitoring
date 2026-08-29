@@ -2,10 +2,11 @@
 
 // =============================================================
 // MqttPublisher — Non-blocking Wi-Fi + MQTT telemetry publisher
+// Supports both Standard TCP (1883) and TLS / SSL (8883)
 //
 // Responsibilities:
 //   - Connect Wi-Fi (non-blocking, millis-based retry)
-//   - Connect MQTT with LWT (non-blocking, millis-based retry)
+//   - Connect MQTT with TLS + LWT (non-blocking, millis-based retry)
 //   - Publish telemetry payload every MqttConfig::PUBLISH_INTERVAL_MS
 //   - Publish online status on connect
 //   - NTP sync for UTC timestamps
@@ -16,6 +17,7 @@
 
 #include <Arduino.h>
 #include <WiFi.h>
+#include <WiFiClientSecure.h>
 #include <PubSubClient.h>
 
 #include "AppConfig.h"
@@ -64,8 +66,9 @@ private:
     static String buildTimestamp();
     static float soilAverage(const SensorSnapshot& snapshot);
 
-    WiFiClient   wifiClient_;
-    PubSubClient mqttClient_;
+    WiFiClient         wifiClient_;
+    WiFiClientSecure   wifiSecureClient_;
+    PubSubClient       mqttClient_;
 
     uint32_t lastWifiAttemptMs_  = 0;
     uint32_t lastMqttAttemptMs_  = 0;

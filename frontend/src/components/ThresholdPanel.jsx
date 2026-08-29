@@ -12,7 +12,7 @@ const THRESHOLD_ITEMS = [
   { key: 'RH OFF (Target)', value: '≥ 90%',     purpose: 'Target Tercapai',      color: '#10B981' },
   { key: 'RH MAX (Batas)',  value: '≥ 95%',     purpose: 'Safety Lock Pompa',    color: '#EF4444' },
   { key: 'SUHU TINGGI',     value: '≥ 30 °C',   purpose: 'Pendingin ON',         color: '#F59E0B' },
-  { key: 'DURASI SEMPROT',  value: '8 Detik',   purpose: 'Waktu per Siklus',     color: '#F472B6' },
+  { key: 'DURASI SEMPROT',  value: '1 Menit',   purpose: 'Waktu per Siklus',     color: '#F472B6' },
   { key: 'JEDA COOLDOWN',   value: '300 Detik', purpose: 'Istirahat 5 Menit',    color: '#0284C7' },
 ];
 

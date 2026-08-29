@@ -40,8 +40,8 @@ constexpr float RH_OFF_THRESHOLD = 90.0F;
 constexpr float TEMP_HIGH_THRESHOLD_C = 30.0F;
 constexpr float RH_MAX_THRESHOLD = 95.0F;
 
-constexpr uint32_t PUMP_ON_DURATION_MS = 8UL * 1000UL;
-constexpr uint32_t PUMP_MAX_ON_MS = 15UL * 1000UL;
+constexpr uint32_t PUMP_ON_DURATION_MS = 60UL * 1000UL; // 60 Detik (1 Menit)
+constexpr uint32_t PUMP_MAX_ON_MS = 60UL * 1000UL;      // 60 Detik (1 Menit)
 constexpr uint32_t PUMP_COOLDOWN_MS = 300UL * 1000UL;
 
 constexpr uint32_t SENSOR_READ_INTERVAL_MS = 5UL * 1000UL;
@@ -65,7 +65,7 @@ constexpr float DHT_MAX_RH = 100.0F;
 constexpr bool     SCHEDULE_ENABLED          = true;
 constexpr uint8_t  SCHEDULE_HOURS_COUNT      = 3;
 constexpr uint8_t  SCHEDULE_HOURS[SCHEDULE_HOURS_COUNT] = {7, 12, 17}; // WIB
-constexpr uint32_t SCHEDULE_PUMP_DURATION_MS = 15UL * 1000UL; // 15 Detik
+constexpr uint32_t SCHEDULE_PUMP_DURATION_MS = 60UL * 1000UL; // 60 Detik (1 Menit)
 
 }  // namespace Config
 
@@ -75,16 +75,16 @@ constexpr uint32_t SCHEDULE_PUMP_DURATION_MS = 15UL * 1000UL; // 15 Detik
 // or define it in platformio.ini build_flags = -D USE_PRODUCTION_CONFIG
 // ============================================================
 
-// #define USE_PRODUCTION_CONFIG
+#define USE_PRODUCTION_CONFIG
 
 #ifdef USE_PRODUCTION_CONFIG
   // Production Profile (Target: sirkulalestari.com / VPS 103.245.38.68)
   #ifndef WIFI_SSID
-  #define WIFI_SSID         "KUMBUNG_WIFI_SSID"
+  #define WIFI_SSID         "AQILA"
   #endif
 
   #ifndef WIFI_PASSWORD
-  #define WIFI_PASSWORD     "KUMBUNG_WIFI_PASSWORD"
+  #define WIFI_PASSWORD     "Aqila2013"
   #endif
 
   #ifndef MQTT_BROKER
@@ -92,7 +92,11 @@ constexpr uint32_t SCHEDULE_PUMP_DURATION_MS = 15UL * 1000UL; // 15 Detik
   #endif
 
   #ifndef MQTT_PORT
-  #define MQTT_PORT         1883 // Or 8883 for TLS
+  #define MQTT_PORT         8883 // Port 8883 for TLS
+  #endif
+
+  #ifndef MQTT_USE_TLS
+  #define MQTT_USE_TLS      true
   #endif
 
   #ifndef MQTT_USERNAME
@@ -100,17 +104,17 @@ constexpr uint32_t SCHEDULE_PUMP_DURATION_MS = 15UL * 1000UL; // 15 Detik
   #endif
 
   #ifndef MQTT_PASSWORD
-  #define MQTT_PASSWORD     "ESP32_MQTT_PASSWORD_PLACEHOLDER"
+  #define MQTT_PASSWORD     "jamur123_!"
   #endif
 
 #else
   // Development Profile (Local LAN Testing)
   #ifndef WIFI_SSID
-  #define WIFI_SSID         "DEV_WIFI_SSID"
+  #define WIFI_SSID         "bb"
   #endif
 
   #ifndef WIFI_PASSWORD
-  #define WIFI_PASSWORD     "DEV_WIFI_PASSWORD"
+  #define WIFI_PASSWORD     "12345678"
   #endif
 
   #ifndef MQTT_BROKER
@@ -119,6 +123,10 @@ constexpr uint32_t SCHEDULE_PUMP_DURATION_MS = 15UL * 1000UL; // 15 Detik
 
   #ifndef MQTT_PORT
   #define MQTT_PORT         1883
+  #endif
+
+  #ifndef MQTT_USE_TLS
+  #define MQTT_USE_TLS      false
   #endif
 
   #ifndef MQTT_USERNAME

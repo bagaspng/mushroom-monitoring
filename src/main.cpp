@@ -57,7 +57,7 @@ void readAndApplyControl(uint32_t nowMs) {
         // tapi eksekusi fisik ditunda oleh PumpController.
         Serial.println(F("[SCHED] Jadwal aktif namun pompa sedang cooldown/running — ditunda."));
       } else {
-        Serial.println(F("[SCHED] Penyemprotan terjadwal dimulai (15 detik)."));
+        Serial.println(F("[SCHED] Penyemprotan terjadwal dimulai (1 menit)."));
       }
     } else {
       // --- Prioritas 2: Kontrol adaptif berbasis sensor DHT22 ---
