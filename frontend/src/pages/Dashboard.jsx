@@ -18,8 +18,9 @@ import { SoilCard } from '../components/SoilCard';
 import { SystemStatus } from '../components/SystemStatus';
 import { ThresholdPanel } from '../components/ThresholdPanel';
 import { AlertCircle, RefreshCw, Clock } from 'lucide-react';
-import unilaLogo from '../assets/unila.webp';
 import bimaLogo from '../assets/bima.webp';
+import diktisaintekLogo from '../assets/Logo Tersier - Diktisaintek Berdampak 1.png';
+import beStrongLogo from '../assets/Logo-Be-Strong-Unila-2023.png';
 import kwtLogo from '../assets/KWT.webp';
 
 // ---- Header Connection Indicator ----
@@ -197,10 +198,11 @@ export function Dashboard() {
             </div>
           </div>
 
-          {/* Center Partner Logos (Unila, BIMA, KWT) */}
-          <div className="header-logos-wrapper" title="Kemitraan: Universitas Lampung, BIMA Kemendikbudristek, KWT">
-            <img src={unilaLogo} alt="Logo Universitas Lampung" className="header-logo-img" />
+          {/* Center Partner Logos (BIMA, Diktisaintek, Be Strong Unila, KWT) */}
+          <div className="header-logos-wrapper" title="Kemitraan: BIMA Kemendikbudristek, Diktisaintek Berdampak, Be Strong Unila, KWT">
             <img src={bimaLogo} alt="Logo BIMA" className="header-logo-img" />
+            <img src={diktisaintekLogo} alt="Logo Diktisaintek Berdampak" className="header-logo-img" />
+            <img src={beStrongLogo} alt="Logo Be Strong Unila" className="header-logo-img header-logo-bestrong" />
             <img src={kwtLogo} alt="Logo KWT" className="header-logo-img" />
           </div>
 
