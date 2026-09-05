@@ -262,13 +262,13 @@ export function PumpStatus({ telemetry, stale }) {
 
                 <div className="pump-info-note">
                   <Info size={15} style={{ color: '#F472B6', flexShrink: 0, marginTop: 1 }} />
-                  <span>Manual dibatasi maksimal 1 menit/siklus demi keamanan pompa.</span>
+                  <span>Manual dibatasi maksimal 5 menit/siklus demi keamanan pompa.</span>
                 </div>
               </div>
             ) : (
               <div className="auto-info-box">
                 <CheckCircle2 size={18} style={{ color: '#16A34A', flexShrink: 0 }} />
-                <span>Otomatis: ESP32 mengevaluasi pompa secara mandiri via sensor DHT22.</span>
+                <span>Otomatis: Penyemprotan rutin terjadwal pukul 07:00, 12:00, &amp; 17:00 WIB (15 menit/siklus).</span>
               </div>
             )}
           </div>
