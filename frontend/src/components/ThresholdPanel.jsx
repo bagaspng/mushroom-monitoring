@@ -8,12 +8,12 @@ import React from 'react';
 import { SlidersHorizontal, Lock } from 'lucide-react';
 
 const THRESHOLD_ITEMS = [
-  { key: 'RH ON (Kering)',  value: '≤ 85%',     purpose: 'Pemicu Pompa ON',     color: '#8B5CF6' },
-  { key: 'RH OFF (Target)', value: '≥ 90%',     purpose: 'Target Tercapai',      color: '#10B981' },
-  { key: 'RH MAX (Batas)',  value: '≥ 95%',     purpose: 'Safety Lock Pompa',    color: '#EF4444' },
-  { key: 'SUHU TINGGI',     value: '≥ 30 °C',   purpose: 'Pendingin ON',         color: '#F59E0B' },
-  { key: 'DURASI SEMPROT',  value: '1 Menit',   purpose: 'Waktu per Siklus',     color: '#F472B6' },
-  { key: 'JEDA COOLDOWN',   value: '300 Detik', purpose: 'Istirahat 5 Menit',    color: '#0284C7' },
+  { key: 'JADWAL PAGI',    value: '07:00 WIB', purpose: 'Durasi 15 Menit',      color: '#8B5CF6' },
+  { key: 'JADWAL SIANG',   value: '12:00 WIB', purpose: 'Durasi 15 Menit',      color: '#10B981' },
+  { key: 'JADWAL SORE',    value: '17:00 WIB', purpose: 'Durasi 15 Menit',      color: '#F59E0B' },
+  { key: 'DURASI JADWAL',  value: '15 Menit',  purpose: 'Waktu per Siklus',     color: '#F472B6' },
+  { key: 'BATAS MANUAL',   value: '5 Menit',   purpose: 'Proteksi Maks Pompa',  color: '#0284C7' },
+  { key: 'JEDA COOLDOWN',  value: '300 Detik', purpose: 'Istirahat 5 Menit',    color: '#EC4899' },
 ];
 
 export function ThresholdPanel() {
@@ -33,8 +33,8 @@ export function ThresholdPanel() {
               <SlidersHorizontal size={22} strokeWidth={2.5} style={{ color: '#1E293B' }} />
             </div>
             <div>
-              <h2 className="card-title">Threshold Ambang Batas</h2>
-              <p className="card-subtitle">Parameter Operasional Otomatis</p>
+              <h2 className="card-title">Jadwal &amp; Parameter</h2>
+              <p className="card-subtitle">Waktu Operasional &amp; Limit Pompa</p>
             </div>
           </div>
 
