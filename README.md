@@ -60,52 +60,140 @@ mosquitto -c mosquitto/mosquitto.conf -v
 
 ---
 
-### Langkah 2: Jalankan FastAPI Backend
-Buka terminal kedua:
+### Langkah 2: Jalankan Backend (FastAPI)
+
+Buka terminal/tab baru dan jalankan langkah-langkah berikut:
+
+#### 1. Masuk ke Direktori Backend
 ```bash
-# 1. Masuk ke direktori backend
 cd backend
+```
 
-# 2. Buat & aktifkan virtual environment (jika belum ada)
-python -m venv .venv
-# Windows:
-.venv\Scripts\activate
-# Linux/macOS:
-source .venv/bin/activate
+#### 2. Buat & Aktifkan Virtual Environment (Cukup sekali saat setup awal)
+- **Windows (PowerShell):**
+  ```powershell
+  python -m venv .venv
+  # Jika muncul error policy saat aktivasi di PowerShell, jalankan dulu:
+  # Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+  .\.venv\Scripts\Activate.ps1
+  ```
+- **Windows (Command Prompt / CMD):**
+  ```cmd
+  python -m venv .venv
+  .venv\Scripts\activate.bat
+  ```
+- **Linux / macOS:**
+  ```bash
+  python3 -m venv .venv
+  source .venv/bin/activate
+  ```
 
-# 3. Install dependensi
+#### 3. Pasang Dependensi Python
+```bash
 pip install -r requirements.txt
+```
 
-# 4. Salin file environment (jika belum ada)
-cp .env.example .env
+#### 4. Konfigurasi File Environment (`.env`)
+Jika belum ada file `.env`, salin dari template `.env.example`:
+- **Windows:**
+  ```powershell
+  copy .env.example .env
+  ```
+- **Linux/macOS:**
+  ```bash
+  cp .env.example .env
+  ```
 
-# 5. Jalankan server backend FastAPI
+#### 5. Jalankan Server FastAPI
+```bash
 uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 ```
-- REST API aktif di: `http://127.0.0.1:8000`
-- Swagger API Docs di: `http://127.0.0.1:8000/docs`
-- WebSocket endpoint di: `ws://127.0.0.1:8000/ws`
+> **Tips Cepat Windows (One-Liner tanpa aktivasi manual):**
+> ```powershell
+> cd backend; .\.venv\Scripts\python.exe -m uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
+> ```
+
+#### 6. Verifikasi Akses Backend
+Buka browser atau uji melalui curl:
+- **Root Info:** [http://127.0.0.1:8000](http://127.0.0.1:8000)
+- **Status API & MQTT:** [http://127.0.0.1:8000/api/status](http://127.0.0.1:8000/api/status)
+- **Dokumentasi Interaktif (Swagger UI):** [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
+- **WebSocket Endpoint:** `ws://127.0.0.1:8000/ws`
 
 ---
 
-### Langkah 3: Jalankan React Frontend (Dashboard)
-Buka terminal ketiga:
+### Langkah 3: Jalankan Frontend (React + Vite)
+
+Buka terminal/tab baru lainnya:
+
+#### 1. Masuk ke Direktori Frontend
 ```bash
-# 1. Masuk ke direktori frontend
 cd frontend
+```
 
-# 2. Install dependensi
+#### 2. Pasang Dependensi Node.js (Cukup sekali saat awal atau jika ada library baru)
+```bash
 npm install
+```
 
-# 3. Salin file environment (jika belum ada)
-cp .env.example .env
+#### 3. Konfigurasi File Environment (`.env`)
+Salin template konfigurasi jika belum ada file `.env`:
+- **Windows:**
+  ```powershell
+  copy .env.example .env
+  ```
+- **Linux/macOS:**
+  ```bash
+  cp .env.example .env
+  ```
+*Secara default, frontend akan otomatis mengarah ke backend lokal `http://localhost:8000` dan WebSocket `ws://localhost:8000/ws`.*
 
-# 4. Jalankan dev server Vite
+#### 4. Jalankan Development Server Vite
+```bash
 npm run dev
 ```
-Buka browser Anda di **`http://localhost:5173`** (atau URL host lokal yang ditampilkan Vite).
+
+#### 5. Akses Dashboard
+Buka browser Anda di alamat:
+👉 **`http://localhost:5173`**
+
+> **Catatan Uji Coba Production Build (Opsional di Lokal):**
+> Untuk menguji hasil compile production frontend di komputer lokal:
+> ```bash
+> npm run build
+> npm run preview
+> ```
 
 ---
+
+### 🌐 Ringkasan Menjalankan di Server VPS (Production)
+
+Jika Anda ingin menjalankan Backend dan Frontend di server produksi (Ubuntu VPS):
+
+1. **Backend dijalankan sebagai Background Service (systemd daemon):**
+   ```bash
+   sudo systemctl start mushroom-backend     # Memulai backend
+   sudo systemctl restart mushroom-backend   # Me-restart backend
+   sudo systemctl status mushroom-backend    # Cek status aktif
+   ```
+2. **Frontend di-build menjadi aset statis dan disajikan oleh Nginx:**
+   ```bash
+   cd /var/www/mushroom-monitoring/frontend
+   npm run build
+   sudo systemctl reload nginx
+   ```
+   *(Aset ter-build di folder `frontend/dist` dan otomatis disajikan via HTTPS di `https://sirkulalestari.com`)*.
+
+---
+
+### 🛠️ Solusi Masalah Umum (Troubleshooting FE & BE)
+
+| Gejala Masalah | Penyebab | Solusi |
+|---|---|---|
+| PowerShell: `cannot be loaded because running scripts is disabled` | Kebijakan eksekusi script Windows terkunci | Jalankan `Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass` di PowerShell sebelum aktivasi `.venv`. |
+| Error `Address already in use` di port 8000 | Port backend dipakai proses lain | Tutup proses lama atau matikan via Task Manager / `kill` proses uvicorn sebelumnya. |
+| Badge status dashboard menampilkan **OFFLINE** | Backend FastAPI atau Mosquitto belum berjalan | Pastikan terminal Mosquitto (port 1883) dan Backend FastAPI (port 8000) menyala tanpa pesan error. |
+| Logo atau perubahan UI tidak muncul di browser | Cache browser menyimpan bundle JS lama | Lakukan *Hard Refresh* dengan menekan `Ctrl + Shift + R` atau `Ctrl + F5` di browser. |
 
 ### Langkah 4: Build & Upload Firmware ESP32
 Buka terminal keempat dari root project:

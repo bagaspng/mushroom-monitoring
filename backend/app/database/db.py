@@ -43,6 +43,15 @@ CREATE INDEX IF NOT EXISTS idx_telemetry_timestamp
 ON telemetry (timestamp);
 """
 
+DEDUPLICATE_TELEMETRY_SQL = """
+DELETE FROM telemetry
+WHERE id NOT IN (
+    SELECT MIN(id)
+    FROM telemetry
+    GROUP BY device_id, timestamp
+);
+"""
+
 CREATE_UNIQUE_INDEX_SQL = """
 CREATE UNIQUE INDEX IF NOT EXISTS idx_telemetry_device_timestamp
 ON telemetry (device_id, timestamp);
@@ -69,6 +78,7 @@ async def init_db() -> None:
 
         await db.execute(CREATE_TABLE_SQL)
         await db.execute(CREATE_INDEX_SQL)
+        await db.execute(DEDUPLICATE_TELEMETRY_SQL)
         await db.execute(CREATE_UNIQUE_INDEX_SQL)
         await db.commit()
     logger.info("SQLite database initialized at %s with WAL mode enabled", DATABASE_URL)
@@ -93,13 +103,20 @@ async def insert_telemetry(row: dict) -> None:
             row,
         )
 
-        # Cleanup: delete rows older than retention window (12 hours)
-        cutoff = (
-            datetime.now(timezone.utc) - timedelta(hours=RETENTION_HOURS)
-        ).strftime("%Y-%m-%dT%H:%M:%SZ")
+        # Cleanup: delete rows older than retention window (12 hours) relative to incoming data
+        row_ts = row.get("timestamp")
+        if row_ts:
+            try:
+                clean_ts = row_ts.replace("Z", "+00:00") if not ("+" in row_ts or "-" in row_ts[10:]) else row_ts
+                row_dt = datetime.fromisoformat(clean_ts)
+                purge_cutoff = (row_dt - timedelta(hours=RETENTION_HOURS)).strftime("%Y-%m-%dT%H:%M:%SZ")
+            except Exception:
+                purge_cutoff = (datetime.now(timezone(timedelta(hours=7))) - timedelta(hours=RETENTION_HOURS)).strftime("%Y-%m-%dT%H:%M:%SZ")
+        else:
+            purge_cutoff = (datetime.now(timezone(timedelta(hours=7))) - timedelta(hours=RETENTION_HOURS)).strftime("%Y-%m-%dT%H:%M:%SZ")
 
         await db.execute(
-            "DELETE FROM telemetry WHERE timestamp < ?", (cutoff,)
+            "DELETE FROM telemetry WHERE timestamp < ?", (purge_cutoff,)
         )
         await db.commit()
 
@@ -107,13 +124,25 @@ async def insert_telemetry(row: dict) -> None:
 async def fetch_history(hours: float = 12.0) -> list[dict]:
     """Return telemetry rows from the last `hours` hours, oldest first."""
     _ensure_db_dir()
-    cutoff = (
-        datetime.now(timezone.utc) - timedelta(hours=hours)
-    ).strftime("%Y-%m-%dT%H:%M:%SZ")
-
     async with aiosqlite.connect(DATABASE_URL) as db:
         await db.execute("PRAGMA busy_timeout = 5000;")
         db.row_factory = aiosqlite.Row
+
+        # Calculate cutoff relative to latest recorded timestamp in telemetry table
+        async with db.execute("SELECT MAX(timestamp) FROM telemetry;") as cur:
+            max_row = await cur.fetchone()
+            latest_str = max_row[0] if max_row else None
+
+        if latest_str:
+            try:
+                clean_ts = latest_str.replace("Z", "+00:00") if not ("+" in latest_str or "-" in latest_str[10:]) else latest_str
+                latest_dt = datetime.fromisoformat(clean_ts)
+                cutoff = (latest_dt - timedelta(hours=hours)).strftime("%Y-%m-%dT%H:%M:%SZ")
+            except Exception:
+                cutoff = (datetime.now(timezone(timedelta(hours=7))) - timedelta(hours=hours)).strftime("%Y-%m-%dT%H:%M:%SZ")
+        else:
+            cutoff = (datetime.now(timezone(timedelta(hours=7))) - timedelta(hours=hours)).strftime("%Y-%m-%dT%H:%M:%SZ")
+
         async with db.execute(
             """
             SELECT * FROM telemetry
