@@ -26,8 +26,14 @@ const char* pumpDecisionReasonName(
         return "Cooldown active";
     }
 
-    if (requestPump && pumpState == PumpState::RUNNING) {
-        return "Pump already running";
+    if (pumpState == PumpState::RUNNING) {
+        if (reason == PumpDecisionReason::SCHEDULED) {
+            return "Penyemprotan Terjadwal Aktif (15 Menit)";
+        }
+        if (reason == PumpDecisionReason::MANUAL_ON) {
+            return "Manual Override ON (Maks 5 Menit)";
+        }
+        return "Pump running";
     }
 
     switch (reason) {
@@ -44,7 +50,7 @@ const char* pumpDecisionReasonName(
         case PumpDecisionReason::TEMP_HIGH_THRESHOLD:
             return "Temperature threshold reached";
         case PumpDecisionReason::NO_THRESHOLD_MET:
-            return "No threshold reached";
+            return "Standby (Menunggu Jadwal)";
         case PumpDecisionReason::SCHEDULED:
             return "Jadwal Rutin (07:00 / 12:00 / 17:00 WIB)";
         default:
@@ -76,25 +82,22 @@ void Logger::printStartup() {
         Serial.printf("SOIL_Z%u pin    : GPIO%u\n", i + 1, Config::SOIL_PINS[i]);
     }
     Serial.printf(
-        "Pump pulse     : %lu ms\n",
-        static_cast<unsigned long>(Config::PUMP_ON_DURATION_MS)
+        "Schedule hours : %02u:00, %02u:00, %02u:00 WIB\n",
+        Config::SCHEDULE_HOURS[0],
+        Config::SCHEDULE_HOURS[1],
+        Config::SCHEDULE_HOURS[2]
+    );
+    Serial.printf(
+        "Schedule pulse : %lu ms (15 Menit)\n",
+        static_cast<unsigned long>(Config::SCHEDULE_PUMP_DURATION_MS)
+    );
+    Serial.printf(
+        "Manual limit   : %lu ms (5 Menit)\n",
+        static_cast<unsigned long>(Config::PUMP_MANUAL_DURATION_MS)
     );
     Serial.printf(
         "Pump cooldown  : %lu ms\n",
         static_cast<unsigned long>(Config::PUMP_COOLDOWN_MS)
-    );
-    Serial.printf(
-        "RH on/off      : %.1f %% / %.1f %%\n",
-        Config::RH_ON_THRESHOLD,
-        Config::RH_OFF_THRESHOLD
-    );
-    Serial.printf(
-        "RH max         : %.1f %%\n",
-        Config::RH_MAX_THRESHOLD
-    );
-    Serial.printf(
-        "Temp high      : %.1f C\n",
-        Config::TEMP_HIGH_THRESHOLD_C
     );
     Serial.printf(
         "Active DHT     : Z%u (GPIO%u)\n",

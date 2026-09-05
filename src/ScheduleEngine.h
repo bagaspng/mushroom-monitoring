@@ -39,17 +39,7 @@ public:
         const int currentHour   = timeinfo.tm_hour;
         const int currentMinute = timeinfo.tm_min;
 
-        // Hanya pada menit ke-00 (00:00 – 00:59 dalam menit)
-        if (currentMinute != 0) {
-            // Keluar dari menit ke-00: reset flag agar jam berikutnya bisa terpicu
-            if (lastSprayedHour_ == currentHour) {
-                // Masih di jam yang sama tapi sudah menit > 0, tidak perlu reset dulu
-                // Reset terjadi saat memasuki jam jadwal berikutnya
-            }
-            return false;
-        }
-
-        // Periksa apakah jam ini termasuk dalam daftar jadwal
+        // Periksa apakah jam saat ini termasuk dalam jam jadwal
         bool isScheduledHour = false;
         for (uint8_t i = 0; i < Config::SCHEDULE_HOURS_COUNT; ++i) {
             if (currentHour == Config::SCHEDULE_HOURS[i]) {
@@ -58,16 +48,23 @@ public:
             }
         }
 
+        // Jika sekarang bukan jam jadwal, reset flag agar jadwal berikutnya siap terpicu
         if (!isScheduledHour) {
+            lastSprayedHour_ = -1;
             return false;
         }
 
-        // Anti-re-trigger: hanya sekali per jam jadwal
+        // Hanya picu pada menit ke-00 (00:00 - 00:59 dalam menit)
+        if (currentMinute != 0) {
+            return false;
+        }
+
+        // Anti-re-trigger: jika sudah pernah terpicu pada jam jadwal ini, jangan picu lagi
         if (lastSprayedHour_ == currentHour) {
             return false;
         }
 
-        // Saatnya menyemprot — catat jam ini agar tidak terpicu lagi
+        // Saatnya menyemprot — catat jam ini agar tidak terpicu lagi sepanjang jam ini
         lastSprayedHour_ = currentHour;
         return true;
     }

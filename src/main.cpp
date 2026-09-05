@@ -32,40 +32,43 @@ bool hasSnapshot = false;
 // Control path — completely independent from monitoring stack.
 // Runs on every sensor read interval regardless of Wi-Fi/MQTT.
 //
-// Urutan prioritas kontrol (AUTO mode):
-//   1. Penyemprotan Terjadwal (07:00 / 12:00 / 17:00 WIB)
-//      → Menyemprot tanpa melihat kondisi sensor / threshold.
-//   2. Kontrol Adaptif Sensor DHT22 (DecisionEngine)
-//      → Menyemprot jika RH ≤ 85% atau Suhu ≥ 30°C.
+// Kontrol otomatis pompa (AUTO mode):
+//   - Berjalan murni berdasarkan jadwal waktu WIB (07:00, 12:00, 17:00 WIB).
+//   - Durasi penyemprotan: 15 menit.
+//   - Tidak dipicu oleh ambang batas suhu atau kelembaban.
+//   - Sensor DHT22 dan Soil tetap dibaca secara berkala untuk pemantauan/telemetri.
 // ---------------------------------------------------------------
 void readAndApplyControl(uint32_t nowMs) {
   snapshot = sensorManager.readAll(nowMs);
   hasSnapshot = true;
 
   if (currentMode == ControlMode::AUTO) {
-    // --- Prioritas 1: Cek jadwal penyemprotan terjadwal ---
-    if (Config::SCHEDULE_ENABLED && scheduleEngine.shouldSprayNow()) {
+    decision.mode = ControlMode::AUTO;
+
+    // Jika pompa sedang aktif berjalan dalam mode AUTO (karena jadwal)
+    if (pumpController.isRunning()) {
       decision.requestPump = true;
       decision.reason      = PumpDecisionReason::SCHEDULED;
-      decision.mode        = ControlMode::AUTO;
+    }
+    // Jika pompa tidak sedang berjalan, cek apakah saatnya memicu jadwal
+    else if (Config::SCHEDULE_ENABLED && scheduleEngine.shouldSprayNow()) {
+      decision.requestPump = true;
+      decision.reason      = PumpDecisionReason::SCHEDULED;
 
-      // startPulse mengembalikan false jika pump sedang RUNNING / COOLDOWN.
-      // Kita tidak memaksa override — PumpController sudah melindungi hardware.
       const bool started = pumpController.startPulse(nowMs, Config::SCHEDULE_PUMP_DURATION_MS);
       if (!started) {
-        // Pompa sedang aktif atau cooldown — jadwal dicatat terpicu
-        // tapi eksekusi fisik ditunda oleh PumpController.
-        Serial.println(F("[SCHED] Jadwal aktif namun pompa sedang cooldown/running — ditunda."));
+        Serial.println(F("[SCHED] Jadwal aktif namun pompa sedang cooldown — ditunda."));
       } else {
-        Serial.println(F("[SCHED] Penyemprotan terjadwal dimulai (1 menit)."));
+        Serial.println(F("[SCHED] Penyemprotan terjadwal dimulai (15 menit)."));
       }
-    } else {
-      // --- Prioritas 2: Kontrol adaptif berbasis sensor DHT22 ---
-      decision = decisionEngine.evaluate(snapshot);
-      decision.mode = ControlMode::AUTO;
-
-      if (decision.requestPump) {
-        pumpController.startPulse(nowMs, Config::PUMP_ON_DURATION_MS);
+    }
+    // Di luar jam jadwal: pompa OFF (murni penjadwalan, tidak dipicu suhu)
+    else {
+      decision.requestPump = false;
+      if (pumpController.state() == PumpState::COOLDOWN) {
+        decision.reason = PumpDecisionReason::NONE; // Diserialisasi sebagai "COOLDOWN" oleh MqttPublisher
+      } else {
+        decision.reason = PumpDecisionReason::NO_THRESHOLD_MET;
       }
     }
   } else {
@@ -96,7 +99,7 @@ void handleControlCommand(ControlMode mode, bool pump) {
     if (pump) {
       decision.requestPump = true;
       decision.reason = PumpDecisionReason::MANUAL_ON;
-      pumpController.startManual(nowMs, Config::PUMP_MAX_ON_MS);
+      pumpController.startManual(nowMs, Config::PUMP_MANUAL_DURATION_MS);
     } else {
       decision.requestPump = false;
       decision.reason = PumpDecisionReason::MANUAL_OFF;
