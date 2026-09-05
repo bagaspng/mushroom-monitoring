@@ -40,9 +40,10 @@ constexpr float RH_OFF_THRESHOLD = 90.0F;
 constexpr float TEMP_HIGH_THRESHOLD_C = 30.0F;
 constexpr float RH_MAX_THRESHOLD = 95.0F;
 
-constexpr uint32_t PUMP_ON_DURATION_MS = 60UL * 1000UL; // 60 Detik (1 Menit)
-constexpr uint32_t PUMP_MAX_ON_MS = 60UL * 1000UL;      // 60 Detik (1 Menit)
-constexpr uint32_t PUMP_COOLDOWN_MS = 300UL * 1000UL;
+constexpr uint32_t PUMP_ON_DURATION_MS = 15UL * 60UL * 1000UL;     // 15 Menit
+constexpr uint32_t PUMP_MANUAL_DURATION_MS = 5UL * 60UL * 1000UL;  // 5 Menit
+constexpr uint32_t PUMP_MAX_ON_MS = 15UL * 60UL * 1000UL;          // 15 Menit Safety Max
+constexpr uint32_t PUMP_COOLDOWN_MS = 300UL * 1000UL;              // 5 Menit Cooldown
 
 constexpr uint32_t SENSOR_READ_INTERVAL_MS = 5UL * 1000UL;
 constexpr uint32_t SERIAL_REPORT_INTERVAL_MS = 10UL * 1000UL;
@@ -58,14 +59,14 @@ constexpr float DHT_MIN_RH = 0.0F;
 constexpr float DHT_MAX_RH = 100.0F;
 
 // ============================================================
-// Scheduled Misting — Penyemprotan Terjadwal (Hybrid Mode)
-// Jadwal berjalan selalu (07:00, 12:00, 17:00 WIB), bersamaan
-// dengan kontrol adaptif sensor DHT22 yang tetap aktif.
+// Scheduled Misting — Penyemprotan Terjadwal (Schedule-Only Mode)
+// Jadwal berjalan di jam 07:00, 12:00, dan 17:00 WIB selama 15 menit.
+// Kontrol otomatis pompa tidak lagi dipicu oleh threshold suhu/kelembaban.
 // ============================================================
 constexpr bool     SCHEDULE_ENABLED          = true;
 constexpr uint8_t  SCHEDULE_HOURS_COUNT      = 3;
 constexpr uint8_t  SCHEDULE_HOURS[SCHEDULE_HOURS_COUNT] = {7, 12, 17}; // WIB
-constexpr uint32_t SCHEDULE_PUMP_DURATION_MS = 60UL * 1000UL; // 60 Detik (1 Menit)
+constexpr uint32_t SCHEDULE_PUMP_DURATION_MS = 15UL * 60UL * 1000UL; // 15 Menit
 
 }  // namespace Config
 
